@@ -1,0 +1,22 @@
+# default values provided just as samples, make `variables_yc_account.tf` based on this file
+# to get more information please refer to official yandex cloud documentation
+
+variable token {
+  description    = "Enter your OAuth token here"
+  default        = "BeIABCDEfZ3AAATuwbKAt5LfgXpLl_u5UJCzF0c"
+}
+
+variable cloud_id {
+  description    = "Enter your Cloud ID here"
+  default        = "b114nl1athsbdq2q17js"
+}
+
+variable folder_id {
+  description    = "Enter your Folder ID here"
+  default        = "a1dr0c1o3l3d0741ng83"
+}
+
+variable zone {
+  description    = "Yandex Cloud default Zone for provisioned resources"
+  default        = "ru-central1-a"
+}

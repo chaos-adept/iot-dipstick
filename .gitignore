@@ -1,0 +1,9 @@
+# *.tf.sample
+gen
+.terraform
+.terraform*
+terraform.tfstate*
+variables_yc_account.tf
+.idea
+.vscode
+local_specific_variables.h
