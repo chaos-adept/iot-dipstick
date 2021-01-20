@@ -24,4 +24,4 @@ based on the sample file (arduino/esp8266-dht12-air-monitor/local_specific_varia
 * [Before to Get Started](../../wiki/Before-to-Get-Started) - List of resources to get required knowledge to work with the project might be found in the wiki page
 * [Prehistory and Architecture notes](../../wiki/Prehistory-and-Architecture-notes) - Prehistory of an approach might be found here
 * [Alice abilities overview](https://yandex.ru/dev/dialogs/alice/doc/about.html) - Alice abilities development get startred
-* [Alice based on the cloud function](https://yandex.ru/dev/dialogs/alice/doc/deploy-ycloud-function.html?lang=ru) - How to integrate [alice-func](terraform/cloud-functions/alice-func) into Alice ability
+* [Alice based on the cloud function](https://yandex.ru/dev/dialogs/alice/doc/deploy-ycloud-function.html) - How to integrate [alice-func](terraform/cloud-functions/alice-func) into Alice ability
