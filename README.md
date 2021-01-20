@@ -18,7 +18,7 @@ file with actual values based on the [yandex terraform provider](https://registr
 
 once you have device id and device password from the terraform output,
 you need to define `arduino/esp8266-dht12-air-monitor/local_specific_variables.h`
-based on the sample file (arduino/esp8266-dht12-air-monitor/local_specific_variables.h.sample)[arduino/esp8266-dht12-air-monitor/local_specific_variables.h.sample]
+based on the sample file [arduino/esp8266-dht12-air-monitor/local_specific_variables.h.sample](arduino/esp8266-dht12-air-monitor/local_specific_variables.h.sample)
 
 ### Resources to get started with the project
 * [Before to Get Started](../../wiki/Before-to-Get-Started) - List of resources to get required knowledge to work with the project might be found in the wiki page
