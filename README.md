@@ -1,6 +1,6 @@
 ### Overview
 IoT based on ESP8266 ([NodeMCU v3 board](http://www.nodemcu.com/index_cn.html)) and [Yandex Cloud](https://cloud.yandex.ru/) 
-with integration with Alice voice assistant see [alice-func](terraform/cloud-functions/alice-func)
+with integration with [Alice](https://yandex.ru/dev/dialogs/alice/doc/about.html)  assistant see [alice-func](terraform/cloud-functions/alice-func)
 
 Alice configuration can't be provided in the source code, you have to configure it on your own. See references in the end of this page.
 
