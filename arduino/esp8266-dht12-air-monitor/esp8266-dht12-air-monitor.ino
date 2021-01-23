@@ -15,7 +15,7 @@
 #include "local_specific_variables.h"
 #include "time_utils.h"
 
-#define PUBLISH_TIMEOUT 1000 * mqttKeepAlive
+#define PUBLISH_TIMEOUT 2 * 1000 * mqttKeepAlive
 #define NTP_OFFSET   0      // In seconds
 #define NTP_INTERVAL 60 * 1000    // In miliseconds
 #define NTP_ADDRESS  "ru.pool.ntp.org"
