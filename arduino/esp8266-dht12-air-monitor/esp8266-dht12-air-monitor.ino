@@ -1,8 +1,12 @@
 #include <DHT12.h>
 #include <NTPClient.h>
-#include <ESP8266WiFi.h>
+#include <WiFi.h>
 #include <WiFiUDP.h>
+//#include <WiFiClientSecure.h>  //included WiFiClientSecure does not work!
+//fixme find a way to use without a workaround
+#include "src/dependencies/WiFiClientSecure/WiFiClientSecure.h" //using older WiFiClientSecure
 #include <PubSubClient.h> // MQTT Client
+
 
 // yandex cloud registry settings
 #include "yandex_cloud_mqtt_settings.h"
@@ -32,7 +36,7 @@ bool lightIsOn = false;
 
 WiFiClientSecure  net;
 PubSubClient client(net);
-BearSSL::X509List x509(registry_root_ca);
+//BearSSL::X509List x509(registry_root_ca);
 
 void connect() {
   delay(5000);
@@ -42,11 +46,11 @@ void connect() {
     delay(1000);
   }
   DEBUG_SERIAL.println(" Connected");
-  net.setInsecure();
+  //net.setInsecure();
   DEBUG_SERIAL.print("Connecting to Yandex IoT Core as");
   DEBUG_SERIAL.print(yandexIoTCoreDeviceId);
   DEBUG_SERIAL.print(" ...");
-  while (!client.connect("Esp8266Client", yandexIoTCoreDeviceId, yandexIoTCoreDevicePassword)) {
+  while (!client.connect("ESP32Client", yandexIoTCoreDeviceId, yandexIoTCoreDevicePassword)) {
     DEBUG_SERIAL.print(".");
     delay(1000);
   }
@@ -65,6 +69,7 @@ void setup() {
   client.setCallback(messageReceived);
   client.setBufferSize(mqttBufferSize);
   client.setKeepAlive(mqttKeepAlive);
+  net.setCACert(registry_root_ca);
 
   timeClient.begin();
   dht12.begin();
@@ -106,67 +111,66 @@ void loop() {
     }
     
     
-    DHT12::ReadStatus chk = dht12.readStatus();
-    switch (chk) {
-    case DHT12::OK:
-      break;
-    case DHT12::ERROR_CHECKSUM:
-      Serial.println(F("Checksum error"));
-      break;
-    case DHT12::ERROR_TIMEOUT:
-      Serial.println(F("Timeout error"));
-      break;
-    case DHT12::ERROR_TIMEOUT_LOW:
-      Serial.println(F("Timeout error on low signal, try put high pullup resistance"));
-      break;
-    case DHT12::ERROR_TIMEOUT_HIGH:
-      Serial.println(F("Timeout error on low signal, try put low pullup resistance"));
-      break;
-    case DHT12::ERROR_CONNECT:
-      Serial.println(F("Connect error"));
-      break;
-    case DHT12::ERROR_ACK_L:
-      Serial.println(F("AckL error"));
-      break;
-    case DHT12::ERROR_ACK_H:
-      Serial.println(F("AckH error"));
-      break;
-    case DHT12::ERROR_UNKNOWN:
-      Serial.println(F("Unknown error DETECTED"));
-      break;
-    case DHT12::NONE:
-      Serial.println(F("No result"));
-      break;
-    default:
-      Serial.println(F("Unknown error"));
-      break;
-    }
+//    DHT12::ReadStatus chk = dht12.readStatus();
+//    switch (chk) {
+//    case DHT12::OK:
+//      break;
+//    case DHT12::ERROR_CHECKSUM:
+//      Serial.println(F("Checksum error"));
+//      break;
+//    case DHT12::ERROR_TIMEOUT:
+//      Serial.println(F("Timeout error"));
+//      break;
+//    case DHT12::ERROR_TIMEOUT_LOW:
+//      Serial.println(F("Timeout error on low signal, try put high pullup resistance"));
+//      break;
+//    case DHT12::ERROR_TIMEOUT_HIGH:
+//      Serial.println(F("Timeout error on low signal, try put low pullup resistance"));
+//      break;
+//    case DHT12::ERROR_CONNECT:
+//      Serial.println(F("Connect error"));
+//      break;
+//    case DHT12::ERROR_ACK_L:
+//      Serial.println(F("AckL error"));
+//      break;
+//    case DHT12::ERROR_ACK_H:
+//      Serial.println(F("AckH error"));
+//      break;
+//    case DHT12::ERROR_UNKNOWN:
+//      Serial.println(F("Unknown error DETECTED"));
+//      break;
+//    case DHT12::NONE:
+//      Serial.println(F("No result"));
+//      break;
+//    default:
+//      Serial.println(F("Unknown error"));
+//      break;
+//    }
     
-    // Read temperature as Celsius (the default)
-    float t12 = dht12.readTemperature();
-    // Read temperature as Fahrenheit (isFahrenheit = true)
-    float f12 = dht12.readTemperature(true);
-    // Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
-    float h12 = dht12.readHumidity();
+//    // Read temperature as Celsius (the default)
+//    float t12 = dht12.readTemperature();
+//    // Read temperature as Fahrenheit (isFahrenheit = true)
+//    float f12 = dht12.readTemperature(true);
+//    // Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
+//    float h12 = dht12.readHumidity();
 
     bool dht12Read = true;
     // Check if any reads failed and exit early (to try again).
 
-    if (isnan(h12) || isnan(t12) || isnan(f12)) {
-      Serial.println("Failed to read from DHT12 sensor!");
+//    if (isnan(h12) || isnan(t12) || isnan(f12)) {
+//      Serial.println("Failed to read from DHT12 sensor!");
+//
+//      dht12Read = false;
+//    }
 
-      dht12Read = false;
-    }
+    // Read temperature as Celsius (the default)
+    float t12 = 24.5f;
+//    // Read temperature as Fahrenheit (isFahrenheit = true)
+//    float f12 = dht12.readTemperature(true);
+//    // Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
+//    float h12 = dht12.readHumidity();
 
     if (dht12Read){
-      // Compute heat index in Fahrenheit (the default)
-      float hif12 = dht12.computeHeatIndex(f12, h12);
-      // Compute heat index in Celsius (isFahreheit = false)
-      float hic12 = dht12.computeHeatIndex(t12, h12, false);
-      // Compute dew point in Fahrenheit (the default)
-      float dpf12 = dht12.dewPoint(f12, h12);
-      // Compute dew point in Celsius (isFahreheit = false)
-      float dpc12 = dht12.dewPoint(t12, h12, false);
 
       client.loop();
 
