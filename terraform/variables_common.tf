@@ -1,11 +1,11 @@
 variable "metric_func_execution_timeout" {
   description = "Timeout for metric handling execution in seconds"
-  default     = "3"
+  default     = "10"
 }
 
 variable "alice_func_execution_timeout" {
   description = "Timeout for alice voice command handling execution in seconds"
-  default     = "10"
+  default     = "3"
 }
 
 variable air_device_count {

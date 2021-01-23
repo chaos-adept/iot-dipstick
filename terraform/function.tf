@@ -35,7 +35,7 @@ resource "yandex_function" "metrics_func" {
   name              = "metrics-func"
   description       = "Handle device metrics and store them into monitoring"
   user_hash         = random_uuid.metrics_func.result
-  runtime           = "python37"
+  runtime           = "python38"
   entrypoint        = "index.msgHandler"
   memory            = "128"
   execution_timeout = var.metric_func_execution_timeout
@@ -57,7 +57,7 @@ resource "yandex_function" "alice_func" {
   name              = "alice-func"
   description       = "Handle alice commands"
   user_hash         = random_uuid.alice_func.result
-  runtime           = "python37"
+  runtime           = "python38"
   entrypoint        = "index.msgHandler"
   memory            = "128"
   execution_timeout = var.alice_func_execution_timeout

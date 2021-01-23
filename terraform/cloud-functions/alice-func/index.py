@@ -12,6 +12,8 @@ logger.setLevel(logging.INFO)
 lightCmdRegexp = re.compile("(свет)|(вкл)|(выкл)")
 lightCMDTurnOffRegexp = re.compile("выкл")
 
+weatherForecastHoursInterval = 3
+
 verboseLogging = eval(os.environ['VERBOSE_LOG'])  ## Convert to bool
 
 METRICS_PUSH_URL = 'https://monitoring.api.cloud.yandex.net/monitoring/v2/data/read'
@@ -26,8 +28,10 @@ def getWheather(msg, iamToken):
         logger.info(f'get wheather metrics')
 
     folderId = os.environ["METRICS_FOLDER_ID"]
+
+    minutesInterval = 60 * weatherForecastHoursInterval
     toTime = dt.datetime.utcnow().replace(microsecond=0)
-    fromTime = toTime - dt.timedelta(minutes=2);
+    fromTime = toTime - dt.timedelta(minutes=minutesInterval)
 
     requestBody = {
         "query": "\"Temperature\"{service=\"custom\", device_id=\"*\"}",
@@ -36,7 +40,7 @@ def getWheather(msg, iamToken):
         "downsampling": {
             "gridAggregation": "LAST",
             "gapFilling": "NONE",
-            "gridInterval": 120000
+            "gridInterval": minutesInterval * 1000 * 60
         }
     }
     if verboseLogging:
@@ -50,7 +54,13 @@ def getWheather(msg, iamToken):
     if verboseLogging:
         logger.info(f'Metrics response: {resp}')
         logger.info(f'Metrics response.content: {resp.content}')
-    temperature = json.loads(resp.content)["metrics"][0]["timeseries"]["doubleValues"][0]
+    metrics = json.loads(resp.content)["metrics"]
+    temperatureValues = metrics[0]["timeseries"]["doubleValues"]
+
+    if not temperatureValues:
+        return f"нет данных о температуре за последние {weatherForecastHoursInterval} часа"
+
+    temperature = temperatureValues[0]
     text = f"температура {temperature} градусов."
     if verboseLogging:
         logger.info(f'temperature: {temperature}')

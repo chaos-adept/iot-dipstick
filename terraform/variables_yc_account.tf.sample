@@ -1,5 +1,6 @@
 # default values provided just as samples, make `variables_yc_account.tf` based on this file
 # to get more information please refer to official yandex cloud documentation
+# https://cloud.yandex.ru/docs/solutions/infrastructure-management/terraform-quickstart
 
 variable token {
   description    = "Enter your OAuth token here"
