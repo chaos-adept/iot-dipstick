@@ -2,18 +2,25 @@
 #include <NTPClient.h>
 #include <WiFi.h>
 #include <WiFiUDP.h>
-//#include <WiFiClientSecure.h>  //included WiFiClientSecure does not work!
-//fixme find a way to use without a workaround
-#include "src/dependencies/WiFiClientSecure/WiFiClientSecure.h" //using older WiFiClientSecure
+
 #include <PubSubClient.h> // MQTT Client
-
-
 // yandex cloud registry settings
 #include "yandex_cloud_mqtt_settings.h"
 
 // device specific config should be created by './local_specific_variables.h.sample'
 #include "local_specific_variables.h"
 #include "time_utils.h"
+
+
+//#include <WiFiClientSecure.h>  //included WiFiClientSecure does not work!
+//fixme find a way to use without a workaround
+//#include "src/dependencies/WiFiClientSecure/WiFiClientSecure.h" //using older WiFiClientSecure
+#if defined(ESP32)
+#include "src/dependencies/WiFiClientSecure/WiFiClientSecure.h" //using older WiFiClientSecure
+#else
+#include <WiFiClientSecure.h>  //included WiFiClientSecure does not work!
+#endif
+
 
 #define PUBLISH_TIMEOUT 2 * 1000 * mqttKeepAlive
 #define NTP_OFFSET   0      // In seconds
@@ -36,7 +43,9 @@ bool lightIsOn = false;
 
 WiFiClientSecure  net;
 PubSubClient client(net);
-//BearSSL::X509List x509(registry_root_ca);
+#ifdef ESP8266
+BearSSL::X509List x509(registry_root_ca);
+#endif
 
 void connect() {
   delay(5000);
@@ -46,7 +55,11 @@ void connect() {
     delay(1000);
   }
   DEBUG_SERIAL.println(" Connected");
-  //net.setInsecure();
+  
+  #if defined(ESP8266)  
+  net.setInsecure();
+  #endif
+  
   DEBUG_SERIAL.print("Connecting to Yandex IoT Core as");
   DEBUG_SERIAL.print(yandexIoTCoreDeviceId);
   DEBUG_SERIAL.print(" ...");
