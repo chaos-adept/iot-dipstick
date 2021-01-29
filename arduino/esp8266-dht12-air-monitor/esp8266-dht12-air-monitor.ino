@@ -25,7 +25,7 @@ DHT12 dht12;
 
 char msg[400];
 const char* msgTemplate = "{\"TimeStamp\":\"%s\",\n \"Values\":\n[{\"Type\":\"Float\",\"Name\":\"Humidity\",\"Value\":null},\n {\"Type\":\"Float\",\"Name\":\"CarbonDioxide\",\"Value\":null},\n {\"Type\":\"Float\",\"Name\":\"Pressure\",\"Value\":null},\n {\"Type\":\"Float\",\"Name\":\"Temperature\",\"Value\":\"%d.%02d\"}]}";
-String topicCommands = String("$devices/")+String(yandexIoTCoreDeviceId)+String("/commands");
+String topicRegistryCommands = String("$registries/")+String(yandexIoTCoreRegistryId)+String("/commands");
 String topicEvents = String("$devices/")+String(yandexIoTCoreDeviceId)+String("/events");
 
 bool lightIsOn = false;
@@ -51,6 +51,12 @@ void connect() {
     delay(1000);
   }
   DEBUG_SERIAL.println(" Connected");
+  
+  DEBUG_SERIAL.println("registry command topic:");
+  DEBUG_SERIAL.println(topicRegistryCommands);
+
+  boolean subcribed = client.subscribe(topicRegistryCommands.c_str());
+  DEBUG_SERIAL.println(subcribed);
 }
 
 void setup() {
@@ -91,6 +97,12 @@ void messageReceived(char* topic, byte* payload, unsigned int length) {
 void loop() {
 
  DEBUG_SERIAL.println("next cycle");
+
+  client.loop();
+
+  if (!client.connected()) {
+    connect();
+  }
 
   // Turn the LED on by making the voltage LOW
   if (lightIsOn) {
