@@ -10,6 +10,9 @@ from index import sentLightCmd
 
 class AliceFuncTestCase(unittest.TestCase):
 
+    def setUp(self) -> None:
+        pass
+
     def test_sent_light_is_true(self):
         when(os).getenv('CA_CERT').thenReturn('MOCK_CA_CERT')
         when(os).getenv('VERBOSE_LOGGING').thenReturn('MOCK_VERBOSE_LOGGING')
@@ -25,10 +28,9 @@ class AliceFuncTestCase(unittest.TestCase):
         actual = sentLightCmd(True)
 
         assert_that(actual).is_equal_to("свет: включен")
-        verify(publish, times=1).single('$devices/MOCK_DEVICE_ID/commands', payload=False, qos=0, retain=False,
+        verify(publish, times=1).single('$registries/MOCK_REGISTRY_ID/commands', payload=True, qos=0, retain=False,
                                         hostname='mqtt.cloud.yandex.net', port=8883, client_id='alice-func',
-                                        keepalive=2,
-                                        will=None,
+                                        keepalive=2, will=None,
                                         auth={'username': 'MOCK_REGISTRY_ID', 'password': 'MOCK_REGISTRY_PASSWORD'},
                                         tls={'ca_certs': 'MOCK_CA_CERT'})
 
@@ -50,10 +52,9 @@ class AliceFuncTestCase(unittest.TestCase):
         actual = sentLightCmd(False)
 
         assert_that(actual).is_equal_to("свет: выключен")
-        verify(publish, times=1).single('$devices/MOCK_DEVICE_ID/commands', payload=False, qos=0, retain=False,
+        verify(publish, times=1).single('$registries/MOCK_REGISTRY_ID/commands', payload=False, qos=0, retain=False,
                                         hostname='mqtt.cloud.yandex.net', port=8883, client_id='alice-func',
-                                        keepalive=2,
-                                        will=None,
+                                        keepalive=2, will=None,
                                         auth={'username': 'MOCK_REGISTRY_ID', 'password': 'MOCK_REGISTRY_PASSWORD'},
                                         tls={'ca_certs': 'MOCK_CA_CERT'})
 
@@ -62,4 +63,4 @@ class AliceFuncTestCase(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    unittest.main()
+    unittest.main(verbosity=2)

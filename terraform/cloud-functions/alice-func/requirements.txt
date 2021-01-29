@@ -1,1 +1,3 @@
+assertpy==1.1
+mockito==1.2.2
 paho-mqtt==1.5.1
