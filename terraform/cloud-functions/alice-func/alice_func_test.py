@@ -1,17 +1,20 @@
+import json
 import os
 import unittest
 
+import requests
 from assertpy import assert_that
 from mockito import when, unstub, verify, ANY
 from paho.mqtt import publish
 
-from index import sentLightCmd
+from index import sentLightCmd, getWheather
 
 
 class AliceFuncTestCase(unittest.TestCase):
 
     def setUp(self) -> None:
         pass
+
 
     def test_sent_light_is_true(self):
         when(os).getenv('CA_CERT').thenReturn('MOCK_CA_CERT')
@@ -35,7 +38,8 @@ class AliceFuncTestCase(unittest.TestCase):
                                         tls={'ca_certs': 'MOCK_CA_CERT'})
 
         verify(os, times=5)
-        unstub(publish)
+        unstub(publish, os)
+
 
     def test_sent_light_is_false(self):
         when(os).getenv('CA_CERT').thenReturn('MOCK_CA_CERT')
@@ -59,7 +63,48 @@ class AliceFuncTestCase(unittest.TestCase):
                                         tls={'ca_certs': 'MOCK_CA_CERT'})
 
         verify(os, times=5)
-        unstub(publish)
+        unstub(publish, os)
+
+
+    def test_get_weather(self):
+        when(os).getenv('METRICS_FOLDER_ID').thenReturn('MOCK_METRICS_FOLDER_ID')
+        when(os).getenv('VERBOSE_LOGGING').thenReturn('MOCK_VERBOSE_LOGGING')
+
+        class Response:
+            content = {"metrics": [{"timeseries": {"doubleValues": [22, 33]}}]}
+
+        response = Response()
+
+        when(requests).post(ANY, json=ANY, headers=ANY, params=ANY).thenReturn(response)
+        when(json).loads(ANY).thenReturn(response.content)
+
+        actual = getWheather("msg", "token")
+
+        assert_that(actual).is_equal_to("температура 22 градусов.")
+        verify(requests, times=1).post('https://monitoring.api.cloud.yandex.net/monitoring/v2/data/read',
+                                       json=ANY, headers={'Authorization': 'Bearer token'},
+                                       params={'folderId': 'MOCK_METRICS_FOLDER_ID', 'service': 'custom'})
+        unstub(requests, json)
+
+    def test_get_weather_is_empty(self):
+        when(os).getenv('METRICS_FOLDER_ID').thenReturn('MOCK_METRICS_FOLDER_ID')
+        when(os).getenv('VERBOSE_LOGGING').thenReturn('MOCK_VERBOSE_LOGGING')
+
+        class Response:
+            content = {"metrics": [{"timeseries": {"doubleValues": []}}]}
+
+        response = Response()
+
+        when(requests).post(ANY, json=ANY, headers=ANY, params=ANY).thenReturn(response)
+        when(json).loads(ANY).thenReturn(response.content)
+
+        actual = getWheather("msg", "token")
+
+        assert_that(actual).is_equal_to("нет данных о температуре за последние 3 часа")
+        verify(requests, times=1).post('https://monitoring.api.cloud.yandex.net/monitoring/v2/data/read',
+                                       json=ANY, headers={'Authorization': 'Bearer token'},
+                                       params={'folderId': 'MOCK_METRICS_FOLDER_ID', 'service': 'custom'})
+        unstub(requests, json)
 
 
 if __name__ == '__main__':
