@@ -14,20 +14,21 @@ lightCMDTurnOffRegexp = re.compile("выкл")
 
 weatherForecastHoursInterval = 3
 
-verboseLogging = eval(os.environ['VERBOSE_LOG'])  ## Convert to bool
+def is_verbose_logging_enabled() -> bool:
+    return bool(os.getenv('VERBOSE_LOG'))
 
 METRICS_PUSH_URL = 'https://monitoring.api.cloud.yandex.net/monitoring/v2/data/read'
 METRICS_SERVICE = 'custom'
 
-if verboseLogging:
+if is_verbose_logging_enabled():
     logger.info('Loading msgHandler function')
 
 
 def getWheather(msg, iamToken):
-    if verboseLogging:
+    if is_verbose_logging_enabled():
         logger.info(f'get wheather metrics')
 
-    folderId = os.environ["METRICS_FOLDER_ID"]
+    folderId = os.getenv('METRICS_FOLDER_ID')
 
     minutesInterval = 60 * weatherForecastHoursInterval
     toTime = dt.datetime.utcnow().replace(microsecond=0)
@@ -43,7 +44,7 @@ def getWheather(msg, iamToken):
             "gridInterval": minutesInterval * 1000 * 60
         }
     }
-    if verboseLogging:
+    if is_verbose_logging_enabled():
         logger.info(f'Metrics request: {requestBody}')
     resp = requests.post(
         METRICS_PUSH_URL,
@@ -51,7 +52,7 @@ def getWheather(msg, iamToken):
         headers={"Authorization": "Bearer " + iamToken},
         params={"folderId": folderId, "service": METRICS_SERVICE}
     )
-    if verboseLogging:
+    if is_verbose_logging_enabled():
         logger.info(f'Metrics response: {resp}')
         logger.info(f'Metrics response.content: {resp.content}')
     metrics = json.loads(resp.content)["metrics"]
@@ -62,17 +63,17 @@ def getWheather(msg, iamToken):
 
     temperature = temperatureValues[0]
     text = f"температура {temperature} градусов."
-    if verboseLogging:
+    if is_verbose_logging_enabled():
         logger.info(f'temperature: {temperature}')
 
     return text
 
 
 def sentLightCmd(isOn):
-    ca_certs = os.environ['CA_CERT']
-    auth = {'username': os.environ['REGISTRY_ID'], 'password': os.environ['REGISTRY_PASSWORD']}
-    deviceId = os.environ['DEVICE_ID'];
-    topic = f"$devices/{deviceId}/commands";
+    ca_certs = os.getenv('CA_CERT')
+    auth = {'username': os.getenv('REGISTRY_ID'), 'password': os.getenv('REGISTRY_PASSWORD')}
+    deviceId = os.getenv('DEVICE_ID')
+    topic = f"$devices/{deviceId}/commands"
 
     publish.single(topic, payload=isOn, qos=0, retain=False, hostname="mqtt.cloud.yandex.net",
                    port=8883, client_id="alice-func", keepalive=2, will=None, auth=auth, tls={'ca_certs': ca_certs})
@@ -85,14 +86,14 @@ def sentLightCmd(isOn):
     Entry-point for Serverless Function.
     :param event: IoT message payload.
     :param context: information about current execution context.
-    :return: sucessfull response statusCode: 200
+    :return: successfull response statusCode: 200
 """
 
 
 def msgHandler(event, context):
     statusCode = 500  ## Error response by default
     iamToken = context.token["access_token"]
-    if verboseLogging:
+    if is_verbose_logging_enabled():
         logger.info(event)
         logger.info(context)
         logger.info(f"iamToken: {iamToken}")
@@ -101,7 +102,7 @@ def msgHandler(event, context):
     session = event["session"]
     version = event["version"]
 
-    if verboseLogging:
+    if is_verbose_logging_enabled():
         logger.info(f'msg[0]: {msg}')
 
     tokens = msg["nlu"]["tokens"]

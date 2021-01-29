@@ -75,7 +75,7 @@ resource "yandex_function" "alice_func" {
 
       CA_CERT = "ca.crt"
       VERBOSE_LOG = title(var.verbose_logs)
-
+      DEVICE_ID = yandex_iot_core_device.air_sensor[0].id
       REGISTRY_ID = yandex_iot_core_registry.iot_registry.id
       REGISTRY_PASSWORD = random_password.iot_registry_password.result
       METRICS_FOLDER_ID = var.folder_id
