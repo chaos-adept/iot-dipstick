@@ -21,7 +21,6 @@ class AliceFuncTestCase(unittest.TestCase):
         when(os).getenv('VERBOSE_LOGGING').thenReturn('MOCK_VERBOSE_LOGGING')
         when(os).getenv('REGISTRY_ID').thenReturn('MOCK_REGISTRY_ID')
         when(os).getenv('REGISTRY_PASSWORD').thenReturn('MOCK_REGISTRY_PASSWORD')
-        when(os).getenv('DEVICE_ID').thenReturn('MOCK_DEVICE_ID')
 
         when(publish).single(ANY, payload=ANY, qos=ANY, retain=ANY,
                              hostname=ANY, port=ANY, client_id=ANY, keepalive=ANY,
@@ -45,7 +44,6 @@ class AliceFuncTestCase(unittest.TestCase):
         when(os).getenv('VERBOSE_LOGGING').thenReturn('MOCK_VERBOSE_LOGGING')
         when(os).getenv('REGISTRY_ID').thenReturn('MOCK_REGISTRY_ID')
         when(os).getenv('REGISTRY_PASSWORD').thenReturn('MOCK_REGISTRY_PASSWORD')
-        when(os).getenv('DEVICE_ID').thenReturn('MOCK_DEVICE_ID')
 
         when(publish).single(ANY, payload=ANY, qos=ANY, retain=ANY,
                              hostname=ANY, port=ANY, client_id=ANY, keepalive=ANY,
