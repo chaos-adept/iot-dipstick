@@ -73,7 +73,7 @@ def sentLightCmd(isOn):
     ca_certs = os.getenv('CA_CERT')
     registryId = os.getenv('REGISTRY_ID')
     auth = {'username': registryId, 'password': os.getenv('REGISTRY_PASSWORD')}
-    topic = f"$registries/{registryId}/commands"
+    topic = f"$registries/{registryId}/commands/light"
 
     publish.single(topic, payload=isOn, qos=0, retain=False, hostname="mqtt.cloud.yandex.net",
                    port=8883, client_id="alice-func", keepalive=2, will=None, auth=auth, tls={'ca_certs': ca_certs})

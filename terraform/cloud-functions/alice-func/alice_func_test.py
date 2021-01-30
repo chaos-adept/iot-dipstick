@@ -30,7 +30,8 @@ class AliceFuncTestCase(unittest.TestCase):
         actual = sentLightCmd(True)
 
         assert_that(actual).is_equal_to("свет: включен")
-        verify(publish, times=1).single('$registries/MOCK_REGISTRY_ID/commands', payload=True, qos=0, retain=False,
+        verify(publish, times=1).single('$registries/MOCK_REGISTRY_ID/commands/light', payload=True,
+                                        qos=0, retain=False,
                                         hostname='mqtt.cloud.yandex.net', port=8883, client_id='alice-func',
                                         keepalive=2, will=None,
                                         auth={'username': 'MOCK_REGISTRY_ID', 'password': 'MOCK_REGISTRY_PASSWORD'},
@@ -53,7 +54,8 @@ class AliceFuncTestCase(unittest.TestCase):
         actual = sentLightCmd(False)
 
         assert_that(actual).is_equal_to("свет: выключен")
-        verify(publish, times=1).single('$registries/MOCK_REGISTRY_ID/commands', payload=False, qos=0, retain=False,
+        verify(publish, times=1).single('$registries/MOCK_REGISTRY_ID/commands/light', payload=False,
+                                        qos=0, retain=False,
                                         hostname='mqtt.cloud.yandex.net', port=8883, client_id='alice-func',
                                         keepalive=2, will=None,
                                         auth={'username': 'MOCK_REGISTRY_ID', 'password': 'MOCK_REGISTRY_PASSWORD'},
