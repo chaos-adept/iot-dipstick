@@ -11,7 +11,9 @@
 #include "local_specific_variables.h"
 #include "time_utils.h"
 
-#define PUBLISH_TIMEOUT 1000 * mqttKeepAlive
+// note we should avoid reaching max mqttKeepAlive time, it is a reason why it is reduced twice
+#define PUBLISH_TIMEOUT 1000 * mqttKeepAlive/2
+
 #define NTP_OFFSET   0      // In seconds
 #define NTP_INTERVAL 60 * 1000    // In miliseconds
 #define NTP_ADDRESS  "ru.pool.ntp.org"
@@ -25,9 +27,11 @@ DHT12 dht12;
 
 char msg[400];
 const char* msgTemplate = "{\"TimeStamp\":\"%s\",\n \"Values\":\n[{\"Type\":\"Float\",\"Name\":\"Humidity\",\"Value\":null},\n {\"Type\":\"Float\",\"Name\":\"CarbonDioxide\",\"Value\":null},\n {\"Type\":\"Float\",\"Name\":\"Pressure\",\"Value\":null},\n {\"Type\":\"Float\",\"Name\":\"Temperature\",\"Value\":\"%d.%02d\"}]}";
-String topicRegistryCommands = String("$registries/")+String(yandexIoTCoreRegistryId)+String("/commands");
+String topicRegistryCommands = String("$registries/")+String(yandexIoTCoreRegistryId)+String("/commands/#");
+String topicRegistryCommandLight = String("$registries/")+String(yandexIoTCoreRegistryId)+String("/commands/light");
 String topicEvents = String("$devices/")+String(yandexIoTCoreDeviceId)+String("/events");
 
+boolean needPublish = false;
 bool lightIsOn = false;
 
 WiFiClientSecure  net;
@@ -88,16 +92,22 @@ void messageReceived(char* topic, byte* payload, unsigned int length) {
   }
   DEBUG_SERIAL.print("Payload: ");
   DEBUG_SERIAL.println(payloadStr);
-  lightIsOn = payloadStr.equals("True");
-  DEBUG_SERIAL.println(lightIsOn);
 
-  digitalWrite(LED_BUILTIN, lightIsOn ? LOW : HIGH);
+  if (topicRegistryCommandLight == topicString) {
+    DEBUG_SERIAL.print("Handling light cmd");
+    lightIsOn = payloadStr.equals("True");
+    DEBUG_SERIAL.println(lightIsOn);
+    digitalWrite(LED_BUILTIN, lightIsOn ? LOW : HIGH);
+  } else {
+    DEBUG_SERIAL.println("Unknown command");
+  }
+
 }
 
 void loop() {
 
- DEBUG_SERIAL.println("next cycle");
-
+  DEBUG_SERIAL.println("next cycle");
+  
   client.loop();
 
   if (!client.connected()) {
@@ -107,17 +117,17 @@ void loop() {
   // Turn the LED on by making the voltage LOW
   if (lightIsOn) {
     digitalWrite(LED_BUILTIN, LOW); 
+  } else {
+    digitalWrite(LED_BUILTIN, HIGH); 
   }
 
-  boolean needPublish = true;
   if(needPublish) {
     if (lightIsOn) {
       digitalWrite(LED_BUILTIN, HIGH);
       delay(10);
       digitalWrite(LED_BUILTIN, LOW);
     }
-    
-    
+
     DHT12::ReadStatus chk = dht12.readStatus();
     switch (chk) {
     case DHT12::OK:
@@ -180,12 +190,6 @@ void loop() {
       // Compute dew point in Celsius (isFahreheit = false)
       float dpc12 = dht12.dewPoint(t12, h12, false);
 
-      client.loop();
-
-      if (!client.connected()) {
-        connect();
-      }
-
       timeClient.update();
       String formattedTime = getFormattedDate(timeClient.getEpochTime());
 
@@ -206,7 +210,7 @@ void loop() {
     }
   }
 
-  DEBUG_SERIAL.println("sleep");
-  DEBUG_SERIAL.println(PUBLISH_TIMEOUT / (1000 * 60));
+  DEBUG_SERIAL.print("sleep for ");
+  DEBUG_SERIAL.println(PUBLISH_TIMEOUT);
   delay(PUBLISH_TIMEOUT);
 }
