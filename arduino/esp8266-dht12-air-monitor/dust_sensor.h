@@ -1,0 +1,3 @@
+void setupDustSensor();
+
+float measureDustSensorValue();
