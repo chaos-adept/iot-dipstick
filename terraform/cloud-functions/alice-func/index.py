@@ -15,7 +15,7 @@ lightCMDTurnOffRegexp = re.compile("выкл")
 weatherForecastHoursInterval = 3
 
 def is_verbose_logging_enabled() -> bool:
-    return bool(os.getenv('VERBOSE_LOG'))
+    return bool(os.getenv('VERBOSE_LOGGING'))
 
 METRICS_PUSH_URL = 'https://monitoring.api.cloud.yandex.net/monitoring/v2/data/read'
 METRICS_SERVICE = 'custom'
@@ -26,7 +26,7 @@ if is_verbose_logging_enabled():
 
 def getWheather(msg, iamToken):
     if is_verbose_logging_enabled():
-        logger.info(f'get wheather metrics')
+        logger.info(f'get weather metrics')
 
     folderId = os.getenv('METRICS_FOLDER_ID')
 
@@ -73,7 +73,7 @@ def sentLightCmd(isOn):
     ca_certs = os.getenv('CA_CERT')
     registryId = os.getenv('REGISTRY_ID')
     auth = {'username': registryId, 'password': os.getenv('REGISTRY_PASSWORD')}
-    topic = f"$registries/{registryId}/commands"
+    topic = f"$registries/{registryId}/commands/light"
 
     publish.single(topic, payload=isOn, qos=0, retain=False, hostname="mqtt.cloud.yandex.net",
                    port=8883, client_id="alice-func", keepalive=2, will=None, auth=auth, tls={'ca_certs': ca_certs})
