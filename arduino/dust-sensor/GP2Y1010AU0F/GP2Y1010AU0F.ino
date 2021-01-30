@@ -1,9 +1,4 @@
 // source from https://atceiling.blogspot.com/2019/10/arduino73-gp2y1010au0f-pm25.html
-// source of GP2Y1010AU0F lib should be taken from
-// refs https://github.com/lixplor/arduino-GP2Y1010AU0F-lib
-// direct ref https://github.com/lixplor/arduino-GP2Y1010AU0F-lib/archive/master.zip
-
-
 
 #include <GP2Y1010AU0F.h>
 #define PIN_LED 5
@@ -42,9 +37,10 @@ void loop() {
       break;
   }
   // печать в окне монитора
-  Serial.println(String("outputV=") + outputV + "\tug / m3= " + ugm3 + "\tAQI= " + aqi + "\tgrade= " + grade);
+  Serial.println(String("outputV=") + outputV + "\tug/m3= " + ugm3 + "\tAQI= " + aqi + "\tgrade= " + grade);
+  //Serial.println(outputV + String(" ") + ugm3 + String(" ") + aqi);
 
  // интервал
- delay(1000);
+ delay(500);
 
 }
