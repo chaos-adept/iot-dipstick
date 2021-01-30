@@ -1,20 +1,20 @@
 import json
 import os
 import unittest
+from unittest.mock import patch
 
 import requests
 from assertpy import assert_that
 from mockito import when, unstub, verify, ANY
 from paho.mqtt import publish
 
-from index import sentLightCmd, getWheather
+from index import sentLightCmd, getWheather, msgHandler
 
 
 class AliceFuncTestCase(unittest.TestCase):
 
     def setUp(self) -> None:
         pass
-
 
     def test_sent_light_is_true(self):
         when(os).getenv('CA_CERT').thenReturn('MOCK_CA_CERT')
@@ -40,7 +40,6 @@ class AliceFuncTestCase(unittest.TestCase):
         verify(os, times=5)
         unstub(publish, os)
 
-
     def test_sent_light_is_false(self):
         when(os).getenv('CA_CERT').thenReturn('MOCK_CA_CERT')
         when(os).getenv('VERBOSE_LOGGING').thenReturn('MOCK_VERBOSE_LOGGING')
@@ -65,7 +64,6 @@ class AliceFuncTestCase(unittest.TestCase):
         verify(os, times=5)
         unstub(publish, os)
 
-
     def test_get_weather(self):
         when(os).getenv('METRICS_FOLDER_ID').thenReturn('MOCK_METRICS_FOLDER_ID')
         when(os).getenv('VERBOSE_LOGGING').thenReturn('MOCK_VERBOSE_LOGGING')
@@ -84,16 +82,17 @@ class AliceFuncTestCase(unittest.TestCase):
         verify(requests, times=1).post('https://monitoring.api.cloud.yandex.net/monitoring/v2/data/read',
                                        json=ANY, headers={'Authorization': 'Bearer token'},
                                        params={'folderId': 'MOCK_METRICS_FOLDER_ID', 'service': 'custom'})
-        unstub(requests, json)
+        unstub(requests, json, os)
+
 
     def test_get_weather_is_empty(self):
         when(os).getenv('METRICS_FOLDER_ID').thenReturn('MOCK_METRICS_FOLDER_ID')
         when(os).getenv('VERBOSE_LOGGING').thenReturn('MOCK_VERBOSE_LOGGING')
 
-        class Response:
+        class MockResponse:
             content = {"metrics": [{"timeseries": {"doubleValues": []}}]}
 
-        response = Response()
+        response = MockResponse()
 
         when(requests).post(ANY, json=ANY, headers=ANY, params=ANY).thenReturn(response)
         when(json).loads(ANY).thenReturn(response.content)
@@ -104,7 +103,45 @@ class AliceFuncTestCase(unittest.TestCase):
         verify(requests, times=1).post('https://monitoring.api.cloud.yandex.net/monitoring/v2/data/read',
                                        json=ANY, headers={'Authorization': 'Bearer token'},
                                        params={'folderId': 'MOCK_METRICS_FOLDER_ID', 'service': 'custom'})
-        unstub(requests, json)
+        unstub(requests, json, os)
+
+
+    @patch("index.sentLightCmd")
+    def test_msgHandler(self, mock_sentLightCmd):
+        when(os).getenv('VERBOSE_LOGGING').thenReturn('MOCK_VERBOSE_LOGGING')
+
+        mock_sentLightCmd.return_value = 'is_on'
+
+        event = {'request': {'nlu': {'tokens': ["включить"]}}, 'session': 'MOCK_SESSION', 'version': 'MOCK_VERSION'}
+
+        class MockContext:
+            token = {'access_token': "MOCK_TOKEN"}
+
+        actual = msgHandler(event, MockContext())
+        assert_that(actual).is_equal_to({'version': 'MOCK_VERSION', 'session': 'MOCK_SESSION',
+                                         'response': {'text': 'is_on', 'end_session': False}})
+
+        assert_that(mock_sentLightCmd.call_count).is_equal_to(1)
+        unstub(os)
+
+
+    @patch("index.getWheather")
+    def test_msgHandler_if_have_no_tokens(self, mock_getWheather):
+        when(os).getenv('VERBOSE_LOGGING').thenReturn('MOCK_VERBOSE_LOGGING')
+
+        mock_getWheather.return_value = 'weather_is'
+
+        event = {'request': {'nlu': {'tokens': []}}, 'session': 'MOCK_SESSION', 'version': 'MOCK_VERSION'}
+
+        class MockContext:
+            token = {'access_token': "MOCK_TOKEN"}
+
+        actual = msgHandler(event, MockContext())
+        assert_that(actual).is_equal_to({'version': 'MOCK_VERSION', 'session': 'MOCK_SESSION',
+                                         'response': {'text': 'weather_is', 'end_session': False}})
+
+        assert_that(mock_getWheather.call_count).is_equal_to(1)
+        unstub(os)
 
 
 if __name__ == '__main__':
