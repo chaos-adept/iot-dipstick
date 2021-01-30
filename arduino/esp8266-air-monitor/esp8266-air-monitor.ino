@@ -1,4 +1,4 @@
-#include <DHT12.h>
+#include <DHT.h>
 #include <NTPClient.h>
 #include <ESP8266WiFi.h>
 #include <WiFiUDP.h>
@@ -24,10 +24,12 @@
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, NTP_ADDRESS, NTP_OFFSET, NTP_INTERVAL);
 
-DHT12 dht12;
+#define DHTPIN D2 
+#define DHTTYPE DHT11   // DHT 11
+DHT dht(DHTPIN, DHTTYPE);
 
 char msg[400];
-const char* msgTemplateDefault = "{\"TimeStamp\":\"%s\",\n \"Values\":\n[{\"Type\":\"Float\",\"Name\":\"Dust ug/m3\",\"Value\":\"%d.%02d\"},\n {\"Type\":\"Float\",\"Name\":\"Temperature\",\"Value\":\"%d.%02d\"}]}";
+const char* msgTemplateDefault = "{\"TimeStamp\":\"%s\",\n \"Values\":\n[{\"Type\":\"Float\",\"Name\":\"Dust ug/m3\",\"Value\":\"%d.%02d\"},\n {\"Type\":\"Float\",\"Name\":\"Temperature\",\"Value\":\"%d.%02d\"},\n {\"Type\":\"Float\",\"Name\":\"Humidity\",\"Value\":\"%d.%02d\"}\n]}";
 const char* msgTemplateWithoutTemp = "{\"TimeStamp\":\"%s\",\n \"Values\":\n[\n {\"Type\":\"Float\",\"Name\":\"Dust ug/m3\",\"Value\":\"%d.%02d\"}\n]}";
 
 String topicRegistryCommands = String("$registries/")+String(yandexIoTCoreRegistryId)+String("/commands/#");
@@ -84,7 +86,7 @@ void setup() {
   client.setKeepAlive(mqttKeepAlive);
 
   timeClient.begin();
-  dht12.begin();
+  dht.begin();
 
   digitalWrite(LED_BUILTIN, HIGH);
 }
@@ -140,57 +142,21 @@ void loop() {
     }
     
 
-    bool dht12Read = true;
-    float t12;
-    float h12;
-    
-    DHT12::ReadStatus chk = dht12.readStatus();
-    switch (chk) {
-    case DHT12::OK:
-      break;
-    case DHT12::ERROR_CHECKSUM:
-      Serial.println(F("Checksum error"));
-      break;
-    case DHT12::ERROR_TIMEOUT:
-      Serial.println(F("Timeout error"));
-      break;
-    case DHT12::ERROR_TIMEOUT_LOW:
-      Serial.println(F("Timeout error on low signal, try put high pullup resistance"));
-      break;
-    case DHT12::ERROR_TIMEOUT_HIGH:
-      Serial.println(F("Timeout error on low signal, try put low pullup resistance"));
-      break;
-    case DHT12::ERROR_CONNECT:
-      Serial.println(F("Connect error"));
-      break;
-    case DHT12::ERROR_ACK_L:
-      Serial.println(F("AckL error"));
-      break;
-    case DHT12::ERROR_ACK_H:
-      Serial.println(F("AckH error"));
-      break;
-    case DHT12::ERROR_UNKNOWN:
-      Serial.println(F("Unknown error DETECTED"));
-      break;
-    case DHT12::NONE:
-      Serial.println(F("No result"));
-      break;
-    default:
-      Serial.println(F("Unknown error"));
-      break;
-    }
-    
+    bool dht11Read = true;
+    float t11;
+    float h11;
+       
     // Read temperature as Celsius (the default)
-    t12 = dht12.readTemperature();
+    t11 = dht.readTemperature();
     // Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
-    h12 = dht12.readHumidity();
+    h11 = dht.readHumidity();
 
     
     // Check if any reads failed and exit early (to try again).
 
-    if (isnan(h12) || isnan(t12)) {
+    if (isnan(h11) || isnan(t11)) {
       Serial.println("Failed to read from DHT12 sensor!");
-      dht12Read = false;
+      dht11Read = false;
     }
 
 
@@ -200,7 +166,7 @@ void loop() {
     
     float dustValue = measureDustSensorValue();
     
-    if (!dht12Read) {
+    if (!dht11Read) {
       snprintf(msg, sizeof(msg), msgTemplateWithoutTemp,
         formattedTime.c_str(),
         (int)dustValue, (int)(dustValue*100)%100
@@ -209,7 +175,8 @@ void loop() {
       snprintf(msg, sizeof(msg), msgTemplateDefault,
         formattedTime.c_str(),
         (int)dustValue, (int)(dustValue*100)%100,
-        (int)t12, (int)(t12*100)%100   
+        (int)t11, (int)(t11*100)%100,
+        (int)h11, (int)(h11*100)%100
       );      
     }
     
