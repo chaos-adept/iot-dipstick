@@ -180,21 +180,19 @@ void loop() {
       );      
     }
     
-
-  
+    if (client.publish(topicEvents.c_str(), msg)) {        
+        DEBUG_SERIAL.println(topicEvents);
+        DEBUG_SERIAL.println("Publish ok");
+    } else {
+      DEBUG_SERIAL.println("Publish failed");
+    }
   }
 
 
 
   DEBUG_SERIAL.println(msg);
       
-//      if (client.publish(topicEvents.c_str(), msg)) {        
-//          DEBUG_SERIAL.println(topicEvents);
-//          DEBUG_SERIAL.println("Publish ok");
-//      } else {
-//        DEBUG_SERIAL.println("Publish failed");
-//      }
-  
+
 
   DEBUG_SERIAL.print("sleep for ");
   DEBUG_SERIAL.println(PUBLISH_TIMEOUT);
