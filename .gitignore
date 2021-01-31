@@ -1,5 +1,6 @@
 # *.tf.sample
 gen
+__pycache__
 .terraform
 .terraform*
 terraform.tfstate*
@@ -7,3 +8,11 @@ variables_yc_account.tf
 .idea
 .vscode
 local_specific_variables.h
+
+#plafrom io
+.pio
+.vscode/.browse.c_cpp.db*
+.vscode/c_cpp_properties.json
+.vscode/launch.json
+.vscode/ipch
+
