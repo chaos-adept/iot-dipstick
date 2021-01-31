@@ -1,0 +1,8 @@
+// define your wifi settings
+const char* ssid = "HOME-ROUTER";
+const char* password = "denispepisg";
+
+// define your yandex cloud device id and device password
+const char* yandexIoTCoreRegistryId = "apeto8eb224hb8a78ae9";
+const char* yandexIoTCoreDeviceId = "аge78gh2o5ri5i910rmr";
+const char* yandexIoTCoreDevicePassword = "cEcY0PEk2UpOGSqz";
