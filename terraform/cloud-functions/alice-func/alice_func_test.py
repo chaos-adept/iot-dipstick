@@ -76,7 +76,7 @@ class AliceFuncTestCase(unittest.TestCase):
         when(requests).post(ANY, json=ANY, headers=ANY, params=ANY).thenReturn(response)
         when(json).loads(ANY).thenReturn(response.content)
 
-        actual = getWheather("msg", "token")
+        actual = getWheather("token")
 
         assert_that(actual).is_equal_to("температура 22 градусов.")
         verify(requests, times=1).post('https://monitoring.api.cloud.yandex.net/monitoring/v2/data/read',
@@ -97,7 +97,7 @@ class AliceFuncTestCase(unittest.TestCase):
         when(requests).post(ANY, json=ANY, headers=ANY, params=ANY).thenReturn(response)
         when(json).loads(ANY).thenReturn(response.content)
 
-        actual = getWheather("msg", "token")
+        actual = getWheather("token")
 
         assert_that(actual).is_equal_to("нет данных о температуре за последние 3 часа")
         verify(requests, times=1).post('https://monitoring.api.cloud.yandex.net/monitoring/v2/data/read',
@@ -121,7 +121,7 @@ class AliceFuncTestCase(unittest.TestCase):
         assert_that(actual).is_equal_to({'version': 'MOCK_VERSION', 'session': 'MOCK_SESSION',
                                          'response': {'text': 'is_on', 'end_session': False}})
 
-        assert_that(mock_sentLightCmd.call_count).is_equal_to(1)
+        mock_sentLightCmd.assert_called_once_with(True)
         unstub(os)
 
 
@@ -140,7 +140,7 @@ class AliceFuncTestCase(unittest.TestCase):
         assert_that(actual).is_equal_to({'version': 'MOCK_VERSION', 'session': 'MOCK_SESSION',
                                          'response': {'text': 'weather_is', 'end_session': False}})
 
-        assert_that(mock_getWheather.call_count).is_equal_to(1)
+        mock_getWheather.assert_called_once_with("MOCK_TOKEN")
         unstub(os)
 
 

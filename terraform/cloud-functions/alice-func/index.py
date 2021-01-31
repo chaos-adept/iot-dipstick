@@ -24,7 +24,7 @@ if is_verbose_logging_enabled():
     logger.info('Loading msgHandler function')
 
 
-def getWheather(msg, iamToken):
+def getWheather(iamToken):
     if is_verbose_logging_enabled():
         logger.info(f'get weather metrics')
 
@@ -111,7 +111,7 @@ def msgHandler(event, context):
         isOn = not any(lightCMDTurnOffRegexp.match(s) for s in tokens)
         text = sentLightCmd(isOn)
     else:
-        text = getWheather(msg, iamToken)
+        text = getWheather(iamToken)
 
     return {
         'version': version,
