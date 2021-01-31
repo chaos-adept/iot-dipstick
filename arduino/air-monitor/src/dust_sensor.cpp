@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include <dust_sensor.h>
 
 float afterDividedMaxVoltage = 1;
 float realOriginalSensorVoltage = 5;
@@ -15,34 +16,60 @@ float calcVoltage = 0;
 float voRawVoltage = 0;
 float dustDensity = 0;
 
-#ifdef ESP8266
-float analogPinVoltMaxRange = 3.3; //tested on wemos d1 r2, nodemcu v3
-#else
-float analogPinVoltMaxRange = 5;
-#endif  
+#include <GP2Y1010AU0F.h>
+#define PIN_LED 5
+#define PIN_OUTPUT A0
 
-void setupDustSensor() {
-  pinMode(ledPower,OUTPUT);
+GP2Y1010AU0F dustSensor(PIN_LED, PIN_OUTPUT);
+
+void setupDustSensor()
+{
+  pinMode(ledPower, OUTPUT);
 }
 
-float measureDustSensorValue() {
-  digitalWrite(ledPower, LOW);
-  delayMicroseconds(samplingTime);
+DustSensorMeausure measureDustSensorValue()
+{
 
-  voMeasured = analogRead(measurePin);
+  double outputV = dustSensor.getOutputV();         // выборка получает выходное напряжение
+  double ugm3 = dustSensor.getDustDensity(outputV); // расчет концентрации пыли
+  double aqi = dustSensor.getAQI(ugm3);             // вычисление aqi
+  int gradeInfo = dustSensor.getGradeInfo(aqi);     // вычисление уровня
+  String grade;
+  switch (gradeInfo)
+  {
+  case GRADE_PERFECT:
+    grade = String("GRADE_PERFECT");
+    break;
+  case GRADE_GOOD:
+    grade = String("GRADE_GOOD");
+    break;
+  case GRADE_POLLUTED_MILD:
+    grade = String("GRADE_POLLUTED_MILD");
+    break;
+  case GRADE_POLLUTED_MEDIUM:
+    grade = String("GRADE_POLLUTED_MEDIUM");
+    break;
+  case GRADE_POLLUTED_HEAVY:
+    grade = String("GRADE_POLLUTED_HEAVY");
+    break;
+  case GRADE_POLLUTED_SEVERE:
+    grade = String("GRADE_POLLUTED_SEVERE");
+    break;
+  }
+  // печать в окне монитора
+  Serial.println(String("outputV=") + outputV + "\tug/m3= " + ugm3 + "\tAQI=" + aqi + "\tgrade=" + grade);
+  //Serial.println(outputV + String(" ") + ugm3 + String(" ") + aqi);
 
-  delayMicroseconds(deltaTime);
-  digitalWrite(ledPower, HIGH);
-  delayMicroseconds(sleepTime);
-
-  voRawVoltage = voMeasured * (analogPinVoltMaxRange/1024);
-  calcVoltage = (voRawVoltage * realOriginalSensorVoltage/afterDividedMaxVoltage);
-  dustDensity = 0.17*calcVoltage-0.1;
-
-  if ( dustDensity < 0)
+  if (dustDensity < 0)
   {
     dustDensity = 0.00;
   }
 
-  return dustDensity;
+  
+  DustSensorMeausure result;
+  result.dustDensity = outputV;
+  result.dustOutvoltageRaw = dustDensity;
+  result.dustOutvoltagePercent = 5.0f / outputV;
+  
+  return result;
 }

@@ -1,3 +1,9 @@
 void setupDustSensor();
 
-float measureDustSensorValue();
+struct DustSensorMeausure {
+    double dustDensity;
+    double dustOutvoltageRaw; 
+    double dustOutvoltagePercent; 
+};
+
+DustSensorMeausure measureDustSensorValue();

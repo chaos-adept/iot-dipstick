@@ -166,17 +166,17 @@ void loop() {
 
     String formattedTime = getFormattedDate(timeClient.getEpochTime());
     
-    float dustValue = measureDustSensorValue();
+    DustSensorMeausure dustMeasure = measureDustSensorValue();
     
     if (!dht11Read) {
       snprintf(msg, sizeof(msg), msgTemplateWithoutTemp,
         formattedTime.c_str(),
-        (int)dustValue, (int)(dustValue*100)%100
+        (int)dustMeasure.dustDensity, (int)(dustMeasure.dustDensity*100)%100
       );
     } else {
       snprintf(msg, sizeof(msg), msgTemplateDefault,
         formattedTime.c_str(),
-        (int)dustValue, (int)(dustValue*100)%100,
+        (int)dustMeasure.dustDensity, (int)(dustMeasure.dustDensity*100)%100,
         (int)t11, (int)(t11*100)%100,
         (int)h11, (int)(h11*100)%100
       );      
