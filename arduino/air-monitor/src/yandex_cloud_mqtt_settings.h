@@ -1,7 +1,7 @@
 const char* mqttserver = "130.193.44.244"; //mqtt.cloud.yandex.net
 const int mqttport=8883;
 
-const int mqttKeepAlive = 10;
+const int mqttKeepAlive = 10 * 1000;
 const int mqttBufferSize = 1024;
 
 const char* registry_root_ca = \

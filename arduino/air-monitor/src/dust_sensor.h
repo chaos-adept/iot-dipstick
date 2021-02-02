@@ -1,9 +1,11 @@
 void setupDustSensor();
 
 struct DustSensorMeausure {
-    double dustDensity;
+    double ugm3;
     double dustOutvoltageRaw; 
-    double dustOutvoltagePercent; 
+    double dustOutvoltagePercent;
+    String grade;
 };
 
 DustSensorMeausure measureDustSensorValue();
+void processDustMeasureCycle(int numberOfSamples, int delayBetweenSamples);
