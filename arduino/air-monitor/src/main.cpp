@@ -14,7 +14,8 @@
 // it will be replaced with a third-party lib later
 #include "dust_sensor.h"
 
-#define PUBLISH_TIMEOUT 1000/2 * mqttKeepAlive
+#define PUBLISH_INTERVAL (1000 * 60 * 1) // once in the 1 minutes
+#define CYCLE_DELAY 3000 //3s
 #define NTP_OFFSET   0      // In seconds
 #define NTP_INTERVAL 60 * 1000    // In miliseconds
 #define NTP_ADDRESS  "ru.pool.ntp.org"
@@ -116,15 +117,26 @@ void setup() {
 }
 
 
-void loop() {
+unsigned long lastCallTime = 0L;
+unsigned long timeFromTheLastPublish = 0L;
 
-  DEBUG_SERIAL.println("next cycle");
+void loop() {
   
+  unsigned long currentTime = millis();
+  timeFromTheLastPublish += millis() - lastCallTime;
+  lastCallTime = currentTime;
+
+  needPublish = PUBLISH_INTERVAL <= timeFromTheLastPublish;
+
+  DEBUG_SERIAL.println("next cycle, time from last publish: " + String(timeFromTheLastPublish / 1000));
+  
+
   client.loop();
 
   if (!client.connected()) {
     connect();
   }
+
 
   // Turn the LED on by making the voltage LOW
   if (lightIsOn) {
@@ -134,9 +146,6 @@ void loop() {
   }
 
   if(needPublish) {
-
-
-    
     if (lightIsOn) {
       digitalWrite(LED_BUILTIN, HIGH);
       delay(10);
@@ -153,7 +162,6 @@ void loop() {
     // Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
     h11 = dht.readHumidity();
 
-    
     // Check if any reads failed and exit early (to try again).
 
     if (isnan(h11) || isnan(t11)) {
@@ -182,21 +190,22 @@ void loop() {
       );      
     }
     
+    DEBUG_SERIAL.println(msg);
+
     if (client.publish(topicEvents.c_str(), msg)) {        
         DEBUG_SERIAL.println(topicEvents);
         DEBUG_SERIAL.println("Publish ok");
+        
     } else {
       DEBUG_SERIAL.println("Publish failed");
     }
+
+    timeFromTheLastPublish = 0L;
   }
 
-
-
-  DEBUG_SERIAL.println(msg);
-      
-
+  
 
   DEBUG_SERIAL.print("sleep for ");
-  DEBUG_SERIAL.println(PUBLISH_TIMEOUT);
-  delay(PUBLISH_TIMEOUT);
+  DEBUG_SERIAL.println(CYCLE_DELAY);
+  delay(CYCLE_DELAY);
 }

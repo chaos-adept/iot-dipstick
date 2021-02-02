@@ -17,7 +17,7 @@ float voRawVoltage = 0;
 float dustDensity = 0;
 
 #include <GP2Y1010AU0F.h>
-#define PIN_LED 5
+#define PIN_LED D5
 #define PIN_OUTPUT A0
 
 GP2Y1010AU0F dustSensor(PIN_LED, PIN_OUTPUT);
@@ -67,9 +67,9 @@ DustSensorMeausure measureDustSensorValue()
 
   
   DustSensorMeausure result;
-  result.dustDensity = outputV;
+  result.dustDensity = dustDensity;
   result.dustOutvoltageRaw = dustDensity;
-  result.dustOutvoltagePercent = 5.0f / outputV;
+  result.dustOutvoltagePercent = outputV;
   
   return result;
 }
