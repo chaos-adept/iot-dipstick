@@ -14,7 +14,7 @@
 #include "time_utils.h"
 
 #define PUBLISH_INTERVAL (1000 * 60 * 10)  // once in the 10 minutes
-#define CYCLE_DELAY (mqttKeepAlive / 3)    // 3s
+#define CYCLE_DELAY 5000     // 5s
 #define NTP_OFFSET 0                       // In seconds
 #define NTP_INTERVAL 60 * 1000             // In miliseconds
 #define NTP_ADDRESS "ru.pool.ntp.org"
@@ -54,7 +54,7 @@ String topicEvents =
 boolean needPublish = true;
 bool lightIsOn = true;
 
-unsigned long lastCallTime = 0L;
+unsigned long lastLoopStartTime = 0L;
 unsigned long timeFromTheLastPublish = 0L;
 
 WiFiClientSecure net;
@@ -200,8 +200,8 @@ void updateLedStatus() {
 
 void loop() {
     unsigned long loopStartTime = millis();
-    timeFromTheLastPublish += millis() - lastCallTime;
-    lastCallTime = loopStartTime;
+    timeFromTheLastPublish += loopStartTime - lastLoopStartTime;
+    lastLoopStartTime = loopStartTime;
 
     needPublish = PUBLISH_INTERVAL <= timeFromTheLastPublish;
 
@@ -226,8 +226,16 @@ void loop() {
 
     DEBUG_SERIAL.print("sleep for ");
     DEBUG_SERIAL.print(CYCLE_DELAY);
-    unsigned long actualDelay = CYCLE_DELAY - (loopEndTime - loopStartTime);
+    DEBUG_SERIAL.print(" cycle actual time ");
+    unsigned long delta = (loopEndTime - loopStartTime);
+    DEBUG_SERIAL.print(delta);
+    if (delta > CYCLE_DELAY) {
+      DEBUG_SERIAL.println("Cycle time more than expected.");
+      return; 
+    }
+
     DEBUG_SERIAL.print(" actualDelay ");
+    unsigned long actualDelay = CYCLE_DELAY - delta;
     DEBUG_SERIAL.println(actualDelay);
     delay(actualDelay);
 }
