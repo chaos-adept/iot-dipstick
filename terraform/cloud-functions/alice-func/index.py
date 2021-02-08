@@ -5,6 +5,7 @@ import json
 import re
 import paho.mqtt.publish as publish
 import requests
+from functools import reduce
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -15,7 +16,7 @@ lightCMDTurnOffRegexp = re.compile("выкл")
 weatherForecastHoursInterval = 3
 
 def is_verbose_logging_enabled() -> bool:
-    return bool(os.getenv('VERBOSE_LOGGING'))
+    return os.getenv('VERBOSE_LOG') == "True"
 
 METRICS_PUSH_URL = 'https://monitoring.api.cloud.yandex.net/monitoring/v2/data/read'
 METRICS_SERVICE = 'custom'
@@ -24,7 +25,7 @@ if is_verbose_logging_enabled():
     logger.info('Loading msgHandler function')
 
 
-def getWheather(msg, iamToken):
+def getWheather(iamToken):
     if is_verbose_logging_enabled():
         logger.info(f'get weather metrics')
 
@@ -56,7 +57,9 @@ def getWheather(msg, iamToken):
         logger.info(f'Metrics response: {resp}')
         logger.info(f'Metrics response.content: {resp.content}')
     metrics = json.loads(resp.content)["metrics"]
-    temperatureValues = metrics[0]["timeseries"]["doubleValues"]
+
+    temperatureValuesParitions = map(lambda item: item["timeseries"]["doubleValues"], metrics)
+    temperatureValues = reduce(lambda a, b: a + b, temperatureValuesParitions)
 
     if not temperatureValues:
         return f"нет данных о температуре за последние {weatherForecastHoursInterval} часа"
@@ -111,7 +114,7 @@ def msgHandler(event, context):
         isOn = not any(lightCMDTurnOffRegexp.match(s) for s in tokens)
         text = sentLightCmd(isOn)
     else:
-        text = getWheather(msg, iamToken)
+        text = getWheather(iamToken)
 
     return {
         'version': version,

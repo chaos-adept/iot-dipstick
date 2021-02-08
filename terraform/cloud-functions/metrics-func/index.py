@@ -11,7 +11,7 @@ METRICS_SERVICE = 'custom'
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-verboseLogging = eval(os.environ['VERBOSE_LOG']) ## Convert to bool
+verboseLogging = os.getenv('VERBOSE_LOG') == "True"
 
 if  verboseLogging:
     logger.info('Loading my-function')
@@ -82,8 +82,7 @@ def msgHandler(event, context):
         logger.info(event)
         logger.info(context)
 
-    msg_payload = json.dumps(event["messages"][0])
-    json_msg = json.loads(msg_payload)
+    json_msg = event["messages"][0]
     device_id = json_msg["details"]["device_id"]
     
     event_payload = base64.b64decode(json_msg["details"]["payload"])
@@ -96,7 +95,7 @@ def msgHandler(event, context):
     payload_json["device_id"] = device_id
 
     iam_token = context.token["access_token"]
-    response = pushMetrics(iam_token, payload_json)
+    pushMetrics(iam_token, payload_json)
 
     statusCode = 200
     
@@ -105,9 +104,7 @@ def msgHandler(event, context):
         'headers': {
             'Content-Type': 'text/plain'
         },
-        'isBase64Encoded': False,
-        'response': response,
-        'responseContent': response.content
+        'isBase64Encoded': False
     }
 
 
