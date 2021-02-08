@@ -16,7 +16,7 @@ MOCK_VERBOSE_LOGGING = "True"
 class PublishMetricsTestCase(unittest.TestCase):
 
     def setUp(self) -> None:
-        when(os).getenv('VERBOSE_LOGGING').thenReturn(MOCK_VERBOSE_LOGGING)
+        when(os).getenv('VERBOSE_LOG').thenReturn(MOCK_VERBOSE_LOGGING)
 
     @patch("index.pushMetrics")
     def test_testHandlingRequest(self, mock_pushMetrics):

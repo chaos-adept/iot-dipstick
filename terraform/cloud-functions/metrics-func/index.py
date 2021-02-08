@@ -11,7 +11,7 @@ METRICS_SERVICE = 'custom'
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-verboseLogging = bool(os.getenv('VERBOSE_LOG')) ## Convert to bool
+verboseLogging = os.getenv('VERBOSE_LOG') == "True"
 
 if  verboseLogging:
     logger.info('Loading my-function')
