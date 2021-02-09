@@ -9,12 +9,12 @@
 
 // device specific config should be created by
 // './local_specific_variables.h.sample'
-#include "dust_sensor.h"
+#include "sensor/dust/GP2Y1010AU0F/dust_sensor.h"
 #include "local_specific_variables.h"
 #include "time_utils.h"
 
 #define PUBLISH_INTERVAL (1000 * 60 * 10)  // once in the 10 minutes
-#define CYCLE_DELAY 5000     // 5s
+#define CYCLE_DELAY 5000                   // 5s
 #define NTP_OFFSET 0                       // In seconds
 #define NTP_INTERVAL 60 * 1000             // In miliseconds
 #define NTP_ADDRESS "ru.pool.ntp.org"
@@ -27,6 +27,8 @@ NTPClient timeClient(ntpUDP, NTP_ADDRESS, NTP_OFFSET, NTP_INTERVAL);
 #define DHTPIN D2
 #define DHTTYPE DHT11  // DHT 11
 DHT dht(DHTPIN, DHTTYPE);
+
+GP2Y1010AU0FSensor sharpDustSesnor(D5, A0);
 
 char msg[512];
 const char *msgTemplateDefault =
@@ -110,7 +112,7 @@ void messageReceived(char *topic, byte *payload, unsigned int length) {
 }
 
 void setup() {
-    setupDustSensor();
+    sharpDustSesnor.begin();
 
     pinMode(LED_BUILTIN, OUTPUT);
     DEBUG_SERIAL.setTimeout(2000);
@@ -153,7 +155,7 @@ void publishActualMetrics() {
         dht11Read = false;
     }
 
-    DustSensorMeausure dustMeasure = measureDustSensorValue();
+    DustSensorMeausure dustMeasure = sharpDustSesnor.getDustMeasure();
 
     timeClient.update();
     String formattedTime = getFormattedDate(timeClient.getEpochTime());
@@ -178,12 +180,12 @@ void publishActualMetrics() {
 
     DEBUG_SERIAL.println(msg);
 
-    if (client.publish(topicEvents.c_str(), msg)) {
-        DEBUG_SERIAL.println(topicEvents);
-        DEBUG_SERIAL.println("Publish ok");
-    } else {
-        DEBUG_SERIAL.println("Publish failed");
-    }
+    // if (client.publish(topicEvents.c_str(), msg)) {
+    //     DEBUG_SERIAL.println(topicEvents);
+    //     DEBUG_SERIAL.println("Publish ok");
+    // } else {
+    //     DEBUG_SERIAL.println("Publish failed");
+    // }
 
     timeFromTheLastPublish = 0L;
 }
@@ -216,11 +218,12 @@ void loop() {
 
     updateLedStatus();
 
-    processDustMeasureCycle(10, 200);
+    sharpDustSesnor.onLoopCycle();
 
     if (needPublish) {
         publishActualMetrics();
     }
+    sharpDustSesnor.onDataClean();
 
     unsigned long loopEndTime = millis();
 
