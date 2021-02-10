@@ -94,16 +94,16 @@ def sentLightCmd(isOn):
 
 
 def msgHandler(event, context):
-    statusCode = 500  ## Error response by default
+    statusCode = 200
     iamToken = context.token["access_token"]
     if is_verbose_logging_enabled():
         logger.info(event)
         logger.info(context)
         logger.info(f"iamToken: {iamToken}")
 
-    msg = event["request"]
-    session = event["session"]
-    version = event["version"]
+    msg = event["body"]
+    session = None if not event.__contains__('session') else event["session"]
+    version = None if not event.__contains__('version') else event["version"]
 
     if is_verbose_logging_enabled():
         logger.info(f'msg[0]: {msg}')
@@ -117,6 +117,7 @@ def msgHandler(event, context):
         text = getWheather(iamToken)
 
     return {
+        'status': statusCode,
         'version': version,
         'session': session,
         'response': {

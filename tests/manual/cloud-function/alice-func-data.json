@@ -1,0 +1,13 @@
+{
+  "body": {
+    "command": "",
+    "original_utterance": "",
+    "nlu": {
+      "tokens": [
+        "включить"
+      ],
+      "entities": [],
+      "intents": {}
+    }
+  }
+}
