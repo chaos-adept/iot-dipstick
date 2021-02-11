@@ -16,9 +16,17 @@ file with actual values based on the [yandex terraform provider](https://registr
 
 ### Arduino firmware
 
-once you have device id and device password from the terraform output,
-you need to define `arduino/air-monitor/local_specific_variables.h`
-based on the sample file [arduino/air-monitor/local_specific_variables.h.sample](arduino/experements/air-monitor/local_specific_variables.h.sample)
+the firmware is located in `arduino/air-monitor`, it is based on the [Platform IO](https://platformio.org/platformio-ide) as a replacement for Arduino IDE.
+
+#### Initialization
+1. create your yandex cloud by the terraform
+1. add/modify your wi-fi settings in the `arduino/air-monitor/local_specific_variables.h` 
+Once you have initialized your yandex cloud with the terraform scripts `arduino/air-monitor/local_specific_variables.h` 
+#### Note
+_Cloud infrastructure provisioning_ step generates `arduino/air-monitor/local_specific_variables.h` based on the   
+file [arduino/air-monitor/local_specific_variables.h.sample](arduino/experements/air-monitor/local_specific_variables.h.sample)
+and your environment settings, for more information see `arduino/scripts/create_local_specific_variables.sh`
+
 
 ### Resources to get started with the project
 * [Before to Get Started](../../wiki/Before-to-Get-Started) - List of resources to get required knowledge to work with the project might be found in the wiki page
