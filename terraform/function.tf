@@ -51,15 +51,6 @@ resource "yandex_function" "metrics_func" {
       METRICS_FOLDER_ID = var.folder_id
       VERBOSE_LOG = title(var.verbose_logs)
   }
-
-  provisioner "local-exec" {
-    command = format("python ./helpers/export-env.py iot_%s %s", self.name, self.id)
-  }
-
-  provisioner "local-exec" {
-    when = destroy
-    command = format("python ./helpers/export-env.py iot_%s", self.name)
-  }
 }
 
 resource "yandex_function" "alice_func" {
@@ -87,14 +78,5 @@ resource "yandex_function" "alice_func" {
       REGISTRY_ID = yandex_iot_core_registry.iot_registry.id
       REGISTRY_PASSWORD = random_password.iot_registry_password.result
       METRICS_FOLDER_ID = var.folder_id
-  }
-
-  provisioner "local-exec" {
-    command = format("python ./helpers/export-env.py iot_%s %s", self.name, self.id)
-  }
-
-  provisioner "local-exec" {
-    when = destroy
-    command = format("python ./helpers/export-env.py iot_%s", self.name)
   }
 }

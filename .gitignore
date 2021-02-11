@@ -16,3 +16,4 @@ local_specific_variables.h
 .vscode/launch.json
 .vscode/ipch
 
+/venv/
