@@ -1,13 +1,18 @@
-#fixme add asserts that env variables are defined
+#!/bin/sh
 
-#REGISTRY_ID="areiqldr2chj5v0g2rd6"
-#REGISTRY_PASSWORD="zx+z{i1QD6YJ#J#&"
-#DEVICE_ID="arekifdlttq12q6sslle"
-#DEVICE_PASSWORD="HsTvGAN6HFundl1v"
+REGISTRY_ID=$(echo "$IOT_REGISTRY")
+REGISTRY_PASSWORD=$(echo "$IOT_REGISTRY_PASSWORD")
 
+EMPTY_LINE=""
+
+echo "--------------------------------------------------------"
+echo "Credentials: '${REGISTRY_ID}' : '${REGISTRY_PASSWORD}'"
+echo "Topic:       'registries/${REGISTRY_ID}/events'"
+echo "--------------------------------------------------------"
+echo $EMPTY_LINE
 
 yc iot mqtt subscribe \
---username "${DEVICE_ID}" \
---password "${DEVICE_PASSWORD}" \
---topic "\$registries/${REGISTRY_ID}/commands" \
+--username "${REGISTRY_ID}" \
+--password "${REGISTRY_PASSWORD}" \
+--topic "\$registries/${REGISTRY_ID}/events" \
 --qos 1

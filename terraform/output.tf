@@ -17,3 +17,11 @@ output "air_devices_ids" {
 output "air_device_passwords" {
   value = random_password.air_device_passwords[*].result
 }
+
+output "alice_func" {
+  value = yandex_function.alice_func.id
+}
+
+output "metrics_func" {
+  value = yandex_function.metrics_func.id
+}
