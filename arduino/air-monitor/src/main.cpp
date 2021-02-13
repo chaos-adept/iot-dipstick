@@ -15,7 +15,7 @@
 #include "sensor/dust/GP2Y1010AU0F/dust_sensor.h"
 #include "time_utils.h"
 
-#define PUBLISH_INTERVAL (1000 * 60 * 10)  // once in the 10 minutes
+#define PUBLISH_INTERVAL (1000 * 60 * 5)  // once in the 5 minutes
 #define CYCLE_DELAY 5000                   // 5s
 #define NTP_OFFSET 0                       // In seconds
 #define NTP_INTERVAL 60 * 1000             // In miliseconds
@@ -51,7 +51,7 @@ boolean needPublish = true;
 bool lightIsOn = true;
 
 unsigned long lastLoopStartTime = 0L;
-unsigned long timeFromTheLastPublish = 0L;
+unsigned long timeFromTheLastPublish = PUBLISH_INTERVAL;
 
 WiFiClientSecure net;
 PubSubClient client(net);
@@ -137,12 +137,14 @@ void publishActualMetrics() {
 
     // get alive sensors
     int aliveSensorCount = 0;
+    int totalExpectedMetricCount = 0;
     AbstractSensor* aliveSensors[sensorCount];
     for (int indx = 0; indx < sensorCount; indx++) {
         AbstractSensor* sensor = sensors[indx];
         if (sensor->isAlive()) {
             aliveSensors[aliveSensorCount] = sensor;
             aliveSensorCount++;
+            totalExpectedMetricCount += sensor->getMetricsCount();
         }
     }
 
@@ -151,13 +153,19 @@ void publishActualMetrics() {
     } else {
         
         // results might be more than sensors
-        MetricResult results[aliveSensorCount];  
-        for (int indx = 0; indx < aliveSensorCount; indx++) {
-            results[indx] = aliveSensors[indx]->getMetrics();
+        
+        MetricResult results[totalExpectedMetricCount];  
+        int resultMetricsCount = 0;
+        for (int sensorIndx = 0; sensorIndx < aliveSensorCount; sensorIndx++) {
+            AbstractSensor* sensor = aliveSensors[sensorIndx];
+            for (int metricIndx = 0; metricIndx < sensor->getMetricsCount(); metricIndx++) {
+                results[resultMetricsCount] = sensor->getMetrics()[metricIndx];
+                resultMetricsCount++;
+            }
         }
 
         char* msg = threadUnsafeFormatMetricsAsJson(timeClient.getEpochTime(),
-                                                    results, aliveSensorCount);
+                                                    results, resultMetricsCount);
         DEBUG_SERIAL.println(msg);
 
         if (client.publish(topicEvents.c_str(), msg)) {

@@ -10,14 +10,20 @@ class DHT11Sensor : public AbstractSensor {
     ~DHT11Sensor();
 
     void begin();
-    MetricResult getMetrics();
+    MetricResult* getMetrics();
+    int getMetricsCount();
     void onLoopCycle();
     void onDataClean();
     bool isAlive();
    private:
-    float temperature;
-    float humidity;
     bool dht11Read;
     bool alive;
+    float temperature;
+    float humidity;
+    
+    MetricResult termperatureMetric;
+    MetricResult humidityMetric;
+    MetricResult metrics[2];
+
     DHT dht;
 };

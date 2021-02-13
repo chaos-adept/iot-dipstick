@@ -5,6 +5,8 @@
 #define DEBUG_SERIAL_BAUDRATE 115200
 
 Z19BSensor::Z19BSensor(int rxPin, int txPin) : mySerial(rxPin, txPin), myMHZ19() {
+    coMetricResult = { String("CO2 PPM"), String("Float"), String(CO2) };
+    temperatureMetricResult = { String("CO2 Temperature"), String("Float"), String(temperature) };
     onDataClean();
 }
 
@@ -31,6 +33,7 @@ Z19BSensor::~Z19BSensor() {
 void Z19BSensor::onLoopCycle() {
                // Buffer for CO2
     CO2 = myMHZ19.getCO2();  // Request CO2 (as ppm)
+    temperature = myMHZ19.getTemperature();
 
     if (myMHZ19.errorCode ==
         RESULT_OK)  // RESULT_OK is an alis for 1. Either can be used to confirm
@@ -38,6 +41,8 @@ void Z19BSensor::onLoopCycle() {
     {
         DEBUG_SERIAL.print("CO2 Value successfully Recieved: ");
         DEBUG_SERIAL.println(CO2);
+        DEBUG_SERIAL.print("Temperature CO2 Value successfully Recieved: ");
+        DEBUG_SERIAL.println(temperature);
         DEBUG_SERIAL.print("Response Code: ");
         DEBUG_SERIAL.println(myMHZ19.errorCode);  // Get the Error Code value
     } else {
@@ -63,6 +68,14 @@ void Z19BSensor::begin() {
     myMHZ19.begin(mySerial);  // *Important, Pass your Stream reference
 }
 
-MetricResult Z19BSensor::getMetrics() {
-    return { String("co2 PPM"), String("Float"), String(CO2) };
+MetricResult* Z19BSensor::getMetrics() {
+    coMetricResult.valueAsJsonPropVal = CO2;
+    temperatureMetricResult.valueAsJsonPropVal = temperature;
+    metricResults[0] = coMetricResult;
+    metricResults[1] = temperatureMetricResult;
+    return metricResults;
+}
+
+int Z19BSensor::getMetricsCount() {
+    return 2;
 }

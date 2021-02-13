@@ -15,7 +15,8 @@ class AbstractSensor {
         virtual void begin() = 0;
         virtual void onLoopCycle() = 0;
         virtual void onDataClean() = 0;
-        virtual MetricResult getMetrics() = 0;
+        virtual MetricResult* getMetrics() = 0;
+        virtual int getMetricsCount() = 0;
         virtual bool isAlive() { return true; };
 };
 

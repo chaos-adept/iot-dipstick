@@ -23,7 +23,9 @@ class GP2Y1010AU0FSensor : public AbstractSensor {
     void onDataClean();
     bool isAlive();
 
-    MetricResult getMetrics();
+    MetricResult* getMetrics();
+    int getMetricsCount();
+    
     DustSensorMeausure getDustMeasure();
 
    private:

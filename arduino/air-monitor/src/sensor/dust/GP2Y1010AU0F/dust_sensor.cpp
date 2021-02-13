@@ -32,12 +32,16 @@ void GP2Y1010AU0FSensor::onDataClean() {
     processedSamplesCount = 0;
 }
 
-MetricResult GP2Y1010AU0FSensor::getMetrics() {
+MetricResult* GP2Y1010AU0FSensor::getMetrics() {
     processDustMeasureCycle(1, 10);
     DustSensorMeausure measure = getDustMeasure();
 
     metricResult.valueAsJsonPropVal = String(measure.ugm3);
-    return metricResult;
+    return &metricResult;
+}
+
+int GP2Y1010AU0FSensor::getMetricsCount() {
+    return 1;
 }
 
 DustSensorMeausure GP2Y1010AU0FSensor::getDustMeasure() {

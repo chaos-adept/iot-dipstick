@@ -10,13 +10,18 @@ class Z19BSensor : public AbstractSensor {
     ~Z19BSensor();
 
     void begin();
-    MetricResult getMetrics();
+    MetricResult* getMetrics();
+    int getMetricsCount();
     void onLoopCycle();
     void onDataClean();
     bool isAlive();
-    
+
    private:
     SoftwareSerial mySerial;
     MHZ19 myMHZ19;
+    MetricResult coMetricResult;
+    MetricResult temperatureMetricResult;
+    MetricResult metricResults[2];
     int CO2;
+    float temperature;
 };

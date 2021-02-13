@@ -3,7 +3,7 @@
 
 char msg[512];
 char metricItemBuff[100];
-char *metricItemFormat = "{\"Type\":\"%s\",\"Name\":\"%s\",\"Value\":\"%s\"}\n ";
+char *metricItemFormat = "{\"Name\":\"%s\",\"Type\":\"%s\",\"Value\":\"%s\"}\n ";
 
 #define DEBUG_SERIAL Serial
 
