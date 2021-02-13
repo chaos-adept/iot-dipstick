@@ -18,6 +18,8 @@ class AbstractSensor {
         virtual MetricResult* getMetrics() = 0;
         virtual int getMetricsCount() = 0;
         virtual bool isAlive() { return true; };
+        virtual bool sleep() { return true; }
+        virtual bool wakeup() { return true; }
 };
 
 #endif

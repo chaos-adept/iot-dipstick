@@ -1,3 +1,9 @@
+#define DEBUG true
+extern "C" {
+    #include "user_interface.h"
+}
+//uint32_t free = system_get_free_heap_size();
+
 #include <ESP8266WiFi.h>
 #include <NTPClient.h>
 #include <PubSubClient.h>  // MQTT Client
@@ -13,29 +19,40 @@
 #include "sensor/co2/z19b/z19b_sensor.h"
 #include "sensor/dht11/dht11_sensor.h"
 #include "sensor/dust/GP2Y1010AU0F/dust_sensor.h"
+#include "sensor/dust/zh03b/zh03b_sensor.h"
 #include "time_utils.h"
 
 #define PUBLISH_INTERVAL (1000 * 60 * 5)  // once in the 5 minutes
-#define CYCLE_DELAY 5000                   // 5s
+#define CYCLE_DELAY 9000                   // 6s
+#define SESNOR_MIN_CLYCLE_DELAY_TO_SLEEP 3000     // sensors will go sleep only if cycle delay more than this value
 #define NTP_OFFSET 0                       // In seconds
 #define NTP_INTERVAL 60 * 1000             // In miliseconds
 #define NTP_ADDRESS "ru.pool.ntp.org"
 #define DEBUG_SERIAL Serial
 #define DEBUG_SERIAL_BAUDRATE 115200
 
+// PINS
 #define CO2_RX_PIN D6
 #define CO2_TX_PIN D7
-#define DHTPIN D1
+#define DHT_PIN D1
+#define DUST_ZH038_RX D2
+#define DUST_ZH038_TX D3
+#define DUST_GP2Y_ANALOG_IN_PIN D5
+#define DUST_GP2Y_LED_CONTROL_PIN A0
+
+
 #define DHTTYPE DHT11  // DHT 11
+
 
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, NTP_ADDRESS, NTP_OFFSET, NTP_INTERVAL);
 
-GP2Y1010AU0FSensor dustSensor(D5, A0);
+GP2Y1010AU0FSensor sharpSensor(DUST_GP2Y_LED_CONTROL_PIN, DUST_GP2Y_ANALOG_IN_PIN);
 Z19BSensor co2sensor(CO2_RX_PIN, CO2_TX_PIN);
-DHT11Sensor dth11Sensor(DHTPIN, DHTTYPE);
+DHT11Sensor dth11Sensor(DHT_PIN, DHTTYPE);
+ZH03BSensor zh03Sensor(DUST_ZH038_RX, DUST_ZH038_TX);
 
-AbstractSensor* sensors[] = {&dustSensor, &co2sensor, &dth11Sensor};
+AbstractSensor* sensors[] = {&co2sensor, &dth11Sensor, &zh03Sensor, &sharpSensor};
 const int sensorCount = sizeof(sensors) / sizeof(sensors[0]);
 
 String topicRegistryCommands = String("$registries/") +
@@ -48,6 +65,7 @@ String topicEvents =
     String("$devices/") + String(yandexIoTCoreDeviceId) + String("/events");
 
 boolean needPublish = true;
+boolean isSensorsSleeping = true;
 bool lightIsOn = true;
 
 unsigned long lastLoopStartTime = 0L;
@@ -56,6 +74,12 @@ unsigned long timeFromTheLastPublish = PUBLISH_INTERVAL;
 WiFiClientSecure net;
 PubSubClient client(net);
 BearSSL::X509List x509(registry_root_ca);
+
+
+void dumpMemory() {
+    DEBUG_SERIAL.print("Free memory: ");
+    DEBUG_SERIAL.println(system_get_free_heap_size());
+}
 
 void connect() {
     delay(5000);
@@ -106,15 +130,21 @@ void messageReceived(char* topic, byte* payload, unsigned int length) {
 }
 
 void setup() {
-    for (int indx = 0; indx < sensorCount; indx++) {
-        sensors[indx]->begin();
-    }
-
     pinMode(LED_BUILTIN, OUTPUT);
+    digitalWrite(LED_BUILTIN, LOW);
+
+    delay(1000);
+
     DEBUG_SERIAL.setTimeout(2000);
     DEBUG_SERIAL.begin(DEBUG_SERIAL_BAUDRATE);
+    
+    dumpMemory();
+
     delay(10);
     DEBUG_SERIAL.println("Device started");
+    DEBUG_SERIAL.print("Sensor count: ");
+    DEBUG_SERIAL.println(sensorCount);
+    
     WiFi.begin(ssid, password);
     client.setServer(mqttserver, mqttport);
     client.setCallback(messageReceived);
@@ -124,6 +154,12 @@ void setup() {
     timeClient.begin();
 
     digitalWrite(LED_BUILTIN, HIGH);
+
+    for (int indx = 0; indx < sensorCount; indx++) {
+        sensors[indx]->begin();
+    }
+    
+    delay(3000);
 }
 
 void publishActualMetrics() {
@@ -189,11 +225,22 @@ void updateLedStatus() {
 }
 
 void loop() {
+    dumpMemory();
+
     unsigned long loopStartTime = millis();
     timeFromTheLastPublish += loopStartTime - lastLoopStartTime;
     lastLoopStartTime = loopStartTime;
 
     needPublish = PUBLISH_INTERVAL <= timeFromTheLastPublish;
+
+    if (isSensorsSleeping) {
+        for (int indx = 0; indx < sensorCount; indx++) {
+            sensors[indx]->wakeup();
+        }      
+        isSensorsSleeping = false;  
+    }
+
+    dumpMemory();
 
     DEBUG_SERIAL.println("next cycle, time from last publish: " +
                          String(timeFromTheLastPublish));
@@ -204,15 +251,22 @@ void loop() {
         connect();
     }
 
+    dumpMemory();
+
     updateLedStatus();
 
     for (int indx = 0; indx < sensorCount; indx++) {
-        sensors[indx]->onLoopCycle();
+        sensors[indx]->onLoopCycle(); 
     }
+
+    dumpMemory();
 
     if (needPublish) {
         publishActualMetrics();
     }
+
+    dumpMemory();
+    
 
     for (int indx = 0; indx < sensorCount; indx++) {
         sensors[indx]->onDataClean();
@@ -226,12 +280,24 @@ void loop() {
     unsigned long delta = (loopEndTime - loopStartTime);
     DEBUG_SERIAL.print(delta);
     if (delta > CYCLE_DELAY) {
-        DEBUG_SERIAL.println("Cycle time more than expected.");
+        DEBUG_SERIAL.println(", Cycle time more than expected - skip cycle delay.");
         return;
     }
 
-    DEBUG_SERIAL.print(" actualDelay ");
+    DEBUG_SERIAL.println(" actualDelay ");
     unsigned long actualDelay = CYCLE_DELAY - delta;
     DEBUG_SERIAL.println(actualDelay);
+
+    dumpMemory();
+
+    //turn sensors in the sleep mode
+    if (actualDelay > SESNOR_MIN_CLYCLE_DELAY_TO_SLEEP) {
+        for (int indx = 0; indx < sensorCount; indx++) {
+            sensors[indx]->sleep();
+        }
+        isSensorsSleeping = true;
+    }
+
+    dumpMemory();
     delay(actualDelay);
 }

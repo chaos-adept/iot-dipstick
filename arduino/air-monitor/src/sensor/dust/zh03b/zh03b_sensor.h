@@ -34,8 +34,8 @@ class ZH03BSensor : public AbstractSensor {
     double pm2_5_sumOfOutput = 0;
     double pm10_sumOfOutput = 0;
     unsigned int processedSamplesCount = 0;
-    int defaultNumberOfSamples = 10;
-    int defaultDelayBetweenSamples = 1000;
+    int defaultNumberOfSamples = 3;
+    int defaultDelayBetweenSamples = 500;
 
     void processDustMeasureCycle(int defaultNumberOfSamples,
                                  long delayBetweenSamples);    

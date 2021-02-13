@@ -2,9 +2,9 @@
 
 ZH03BSensor::ZH03BSensor(int rxPin, int txPin)
     : zhSerial(rxPin, txPin), zh03B(zhSerial) {
-    pm1_0_metricResult = {String("PM1.0"), String("Float")};
-    pm2_5_metricResult = {String("PM2.5"), String("Float")};
-    pm10_metricResult = {String("PM10"), String("Float")};
+    pm1_0_metricResult = {String("PM 1.0"), String("Float")};
+    pm2_5_metricResult = {String("PM 2.5"), String("Float")};
+    pm10_metricResult = {String("PM 10"), String("Float")};
     onDataClean();
 }
 
@@ -15,6 +15,8 @@ void ZH03BSensor::begin() {
     zhSerial.begin(9600);
     delay(100);
     zh03B.setMode(SD_ZH03B::QA_MODE);
+    // zh03B.setQandAmode();
+
     Serial.println("-- ZH03B initialized --");
     delay(200);
     onDataClean();
