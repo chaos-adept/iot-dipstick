@@ -10,7 +10,7 @@ resource "null_resource" "iot_registry" {
   }
 
   provisioner "local-exec" {
-    command = format("python ./scripts/export-env.py %s_password %s", self.triggers.iot_registry_name,
+    command = format("python ./scripts/export-env.py %s_password \"%s\"", self.triggers.iot_registry_name,
     random_password.iot_registry_password.result)
   }
 
@@ -77,7 +77,7 @@ resource "null_resource" "air_sensor" {
   }
 
   provisioner "local-exec" {
-    command = format("python ./scripts/export-env.py iot_%s_password %s",
+    command = format("python ./scripts/export-env.py iot_%s_password \"%s\"",
     self.triggers.sensor_name, random_password.air_device_passwords[count.index].result)
   }
 
