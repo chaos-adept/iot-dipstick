@@ -6,8 +6,8 @@
 
 DHT11Sensor::DHT11Sensor(int pin, int type) : dht(pin, type) {
     alive = true;
-    this->termperatureMetric = { String("temparature"), String("Float") };
-    this->humidityMetric = { String("humidity"), String("Float") };
+    this->termperatureMetric = { String("Temperature"), String("Float") };
+    this->humidityMetric = { String("Humidity"), String("Float") };
     onDataClean();
 }
 
@@ -27,7 +27,7 @@ void DHT11Sensor::onLoopCycle() {
     
     // Check if any reads failed and exit early (to try again).
     if (isnan(temperature) || isnan(humidity)) {
-        Serial.println("Failed to read from DHT12 sensor!");
+        Serial.println("Failed to read from DHT sensor!");
         dht11Read = false;
         alive = false;
     } else {
@@ -47,7 +47,7 @@ void DHT11Sensor::begin() {
 
 MetricResult* DHT11Sensor::getMetrics() {
     termperatureMetric.valueAsJsonPropVal = temperature;
-    termperatureMetric.valueAsJsonPropVal = humidity;
+    humidityMetric.valueAsJsonPropVal = humidity;
 
     metrics[0] = termperatureMetric;
     metrics[1] = humidityMetric;

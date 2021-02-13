@@ -25,7 +25,7 @@
 
 #define CO2_RX_PIN D6
 #define CO2_TX_PIN D7
-#define DHTPIN D2
+#define DHTPIN D1
 #define DHTTYPE DHT11  // DHT 11
 
 WiFiUDP ntpUDP;
