@@ -73,7 +73,7 @@ void ZH03BSensor::processDustMeasureCycle(int defaultNumberOfSamples,
 
         pm1_0_sumOfOutput += zh03B.getPM1_0();
         pm2_5_sumOfOutput += zh03B.getPM2_5();
-        pm10_sumOfOutput += zh03B.getPM2_5();
+        pm10_sumOfOutput += zh03B.getPM10_0();
 
         processedSamplesCount++;
 

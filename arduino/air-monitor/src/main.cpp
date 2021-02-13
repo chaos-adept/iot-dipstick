@@ -18,11 +18,11 @@ extern "C" {
 #include "local_specific_variables.h"
 #include "sensor/co2/z19b/z19b_sensor.h"
 #include "sensor/dht11/dht11_sensor.h"
-#include "sensor/dust/GP2Y1010AU0F/dust_sensor.h"
+// #include "sensor/dust/GP2Y1010AU0F/dust_sensor.h"
 #include "sensor/dust/zh03b/zh03b_sensor.h"
 #include "time_utils.h"
 
-#define PUBLISH_INTERVAL (1000 * 60 * 5)  // once in the 5 minutes
+#define PUBLISH_INTERVAL (1000 * 60 * 1)  // once in the 1 minutes
 #define CYCLE_DELAY 9000                   // 6s
 #define SESNOR_MIN_CLYCLE_DELAY_TO_SLEEP 3000     // sensors will go sleep only if cycle delay more than this value
 #define NTP_OFFSET 0                       // In seconds
@@ -47,12 +47,12 @@ extern "C" {
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, NTP_ADDRESS, NTP_OFFSET, NTP_INTERVAL);
 
-GP2Y1010AU0FSensor sharpSensor(DUST_GP2Y_LED_CONTROL_PIN, DUST_GP2Y_ANALOG_IN_PIN);
+// GP2Y1010AU0FSensor sharpSensor(DUST_GP2Y_LED_CONTROL_PIN, DUST_GP2Y_ANALOG_IN_PIN);
 Z19BSensor co2sensor(CO2_RX_PIN, CO2_TX_PIN);
 DHT11Sensor dth11Sensor(DHT_PIN, DHTTYPE);
 ZH03BSensor zh03Sensor(DUST_ZH038_RX, DUST_ZH038_TX);
 
-AbstractSensor* sensors[] = {&co2sensor, &dth11Sensor, &zh03Sensor, &sharpSensor};
+AbstractSensor* sensors[] = {&co2sensor, &dth11Sensor, &zh03Sensor};
 const int sensorCount = sizeof(sensors) / sizeof(sensors[0]);
 
 String topicRegistryCommands = String("$registries/") +
