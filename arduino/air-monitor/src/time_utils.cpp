@@ -13,6 +13,7 @@ String getFormattedTime(unsigned long rawTime) {
   return hoursStr + ":" + minuteStr + ":" + secondStr;
 }
 
+
 #define LEAP_YEAR(Y)     ( (Y>0) && !(Y%4) && ( (Y%100) || !(Y%400) ) )
 
 // Based on https://github.com/PaulStoffregen/Time/blob/master/Time.cpp

@@ -1,4 +1,3 @@
-#include <DHT.h>
 #include <ESP8266WiFi.h>
 #include <NTPClient.h>
 #include <PubSubClient.h>  // MQTT Client
@@ -9,8 +8,11 @@
 
 // device specific config should be created by
 // './local_specific_variables.h.sample'
-#include "sensor/dust/GP2Y1010AU0F/dust_sensor.h"
+#include "format/json_formatter.h"
 #include "local_specific_variables.h"
+#include "sensor/co2/z19b/z19b_sensor.h"
+#include "sensor/dht11/dht11_sensor.h"
+#include "sensor/dust/GP2Y1010AU0F/dust_sensor.h"
 #include "time_utils.h"
 
 #define PUBLISH_INTERVAL (1000 * 60 * 10)  // once in the 10 minutes
@@ -21,28 +23,20 @@
 #define DEBUG_SERIAL Serial
 #define DEBUG_SERIAL_BAUDRATE 115200
 
+#define CO2_RX_PIN D6
+#define CO2_TX_PIN D7
+#define DHTPIN D2
+#define DHTTYPE DHT11  // DHT 11
+
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, NTP_ADDRESS, NTP_OFFSET, NTP_INTERVAL);
 
-#define DHTPIN D2
-#define DHTTYPE DHT11  // DHT 11
-DHT dht(DHTPIN, DHTTYPE);
+GP2Y1010AU0FSensor dustSensor(D5, A0);
+Z19BSensor co2sensor(CO2_RX_PIN, CO2_TX_PIN);
+DHT11Sensor dth11Sensor(DHTPIN, DHTTYPE);
 
-GP2Y1010AU0FSensor sharpDustSesnor(D5, A0);
-
-char msg[512];
-const char *msgTemplateDefault =
-    "{\"TimeStamp\":\"%s\",\n "
-    "\"Values\":\n["
-    "{\"Type\":\"Float\",\"Name\":\"Dust ug/m3\",\"Value\":\"%d.%02d\"},\n "
-    "{\"Type\":\"Float\",\"Name\":\"Dust Voltage\",\"Value\":\"%d.%02d\"},\n "
-    "{\"Type\":\"Float\",\"Name\":\"Dust Percent "
-    "Voltage\",\"Value\":\"%d.%02d\"},\n "
-    "{\"Type\":\"Float\",\"Name\":\"Temperature\",\"Value\":\"%d.%02d\"},\n "
-    "{\"Type\":\"Float\",\"Name\":\"Humidity\",\"Value\":\"%d.%02d\"}\n]}";
-const char *msgTemplateWithoutTemp =
-    "{\"TimeStamp\":\"%s\",\n \"Values\":\n[\n "
-    "{\"Type\":\"Float\",\"Name\":\"Dust ug/m3\",\"Value\":\"%d.%02d\"}\n]}";
+AbstractSensor* sensors[] = {&dustSensor, &co2sensor, &dth11Sensor};
+const int sensorCount = sizeof(sensors) / sizeof(sensors[0]);
 
 String topicRegistryCommands = String("$registries/") +
                                String(yandexIoTCoreRegistryId) +
@@ -89,7 +83,7 @@ void connect() {
     DEBUG_SERIAL.println(subcribed);
 }
 
-void messageReceived(char *topic, byte *payload, unsigned int length) {
+void messageReceived(char* topic, byte* payload, unsigned int length) {
     String topicString = String(topic);
     DEBUG_SERIAL.print("Message received. Topic: ");
     DEBUG_SERIAL.println(topicString.c_str());
@@ -112,7 +106,9 @@ void messageReceived(char *topic, byte *payload, unsigned int length) {
 }
 
 void setup() {
-    sharpDustSesnor.begin();
+    for (int indx = 0; indx < sensorCount; indx++) {
+        sensors[indx]->begin();
+    }
 
     pinMode(LED_BUILTIN, OUTPUT);
     DEBUG_SERIAL.setTimeout(2000);
@@ -126,7 +122,6 @@ void setup() {
     client.setKeepAlive(mqttKeepAlive / 1000);
 
     timeClient.begin();
-    dht.begin();
 
     digitalWrite(LED_BUILTIN, HIGH);
 }
@@ -138,58 +133,43 @@ void publishActualMetrics() {
         digitalWrite(LED_BUILTIN, LOW);
     }
 
-    bool dht11Read = true;
-    float t11;
-    float h11;
-
-    // Read temperature as Celsius (the default)
-    t11 = dht.readTemperature();
-    // Sensor readings may also be up to 2 seconds 'old' (its a very slow
-    // sensor)
-    h11 = dht.readHumidity();
-
-    // Check if any reads failed and exit early (to try again).
-
-    if (isnan(h11) || isnan(t11)) {
-        Serial.println("Failed to read from DHT12 sensor!");
-        dht11Read = false;
-    }
-
-    DustSensorMeausure dustMeasure = sharpDustSesnor.getDustMeasure();
-
     timeClient.update();
-    String formattedTime = getFormattedDate(timeClient.getEpochTime());
 
-    if (!dht11Read) {
-        snprintf(msg, sizeof(msg), msgTemplateWithoutTemp,
-                 formattedTime.c_str(), (int)dustMeasure.ugm3,
-                 (int)(dustMeasure.ugm3 * 100) % 100,
-                 (int)dustMeasure.dustOutvoltageRaw,
-                 (int)(dustMeasure.dustOutvoltageRaw * 100) % 100,
-                 (int)dustMeasure.dustOutvoltagePercent,
-                 (int)(dustMeasure.dustOutvoltagePercent * 100) % 100);
-    } else {
-        snprintf(msg, sizeof(msg), msgTemplateDefault, formattedTime.c_str(),
-                 (int)dustMeasure.ugm3, (int)(dustMeasure.ugm3 * 100) % 100,
-                 (int)dustMeasure.dustOutvoltageRaw,
-                 (int)(dustMeasure.dustOutvoltageRaw * 100) % 100,
-                 (int)dustMeasure.dustOutvoltagePercent,
-                 (int)(dustMeasure.dustOutvoltagePercent * 100) % 100, (int)t11,
-                 (int)(t11 * 100) % 100, (int)h11, (int)(h11 * 100) % 100);
+    // get alive sensors
+    int aliveSensorCount = 0;
+    AbstractSensor* aliveSensors[sensorCount];
+    for (int indx = 0; indx < sensorCount; indx++) {
+        AbstractSensor* sensor = sensors[indx];
+        if (sensor->isAlive()) {
+            aliveSensors[aliveSensorCount] = sensor;
+            aliveSensorCount++;
+        }
     }
 
-    DEBUG_SERIAL.println(msg);
+    if (aliveSensorCount == 0) {
+        DEBUG_SERIAL.println("no alive sensors to send data");
+    } else {
+        
+        // results might be more than sensors
+        MetricResult results[aliveSensorCount];  
+        for (int indx = 0; indx < aliveSensorCount; indx++) {
+            results[indx] = aliveSensors[indx]->getMetrics();
+        }
 
-    // if (client.publish(topicEvents.c_str(), msg)) {
-    //     DEBUG_SERIAL.println(topicEvents);
-    //     DEBUG_SERIAL.println("Publish ok");
-    // } else {
-    //     DEBUG_SERIAL.println("Publish failed");
-    // }
+        char* msg = threadUnsafeFormatMetricsAsJson(timeClient.getEpochTime(),
+                                                    results, aliveSensorCount);
+        DEBUG_SERIAL.println(msg);
+
+        if (client.publish(topicEvents.c_str(), msg)) {
+            DEBUG_SERIAL.println(topicEvents);
+            DEBUG_SERIAL.println("Publish ok");
+        } else {
+            DEBUG_SERIAL.println("Publish failed");
+        }
+    }
 
     timeFromTheLastPublish = 0L;
 }
-
 
 void updateLedStatus() {
     // Turn the LED on by making the voltage LOW
@@ -197,7 +177,7 @@ void updateLedStatus() {
         digitalWrite(LED_BUILTIN, LOW);
     } else {
         digitalWrite(LED_BUILTIN, HIGH);
-    }  
+    }
 }
 
 void loop() {
@@ -218,12 +198,17 @@ void loop() {
 
     updateLedStatus();
 
-    sharpDustSesnor.onLoopCycle();
+    for (int indx = 0; indx < sensorCount; indx++) {
+        sensors[indx]->onLoopCycle();
+    }
 
     if (needPublish) {
         publishActualMetrics();
     }
-    sharpDustSesnor.onDataClean();
+
+    for (int indx = 0; indx < sensorCount; indx++) {
+        sensors[indx]->onDataClean();
+    }
 
     unsigned long loopEndTime = millis();
 
@@ -233,8 +218,8 @@ void loop() {
     unsigned long delta = (loopEndTime - loopStartTime);
     DEBUG_SERIAL.print(delta);
     if (delta > CYCLE_DELAY) {
-      DEBUG_SERIAL.println("Cycle time more than expected.");
-      return; 
+        DEBUG_SERIAL.println("Cycle time more than expected.");
+        return;
     }
 
     DEBUG_SERIAL.print(" actualDelay ");

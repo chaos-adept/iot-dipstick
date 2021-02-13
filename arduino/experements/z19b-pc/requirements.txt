@@ -1,0 +1,2 @@
+pymh-z19b-serial==1.2.3
+pyserial==3.5

@@ -16,6 +16,7 @@ class AbstractSensor {
         virtual void onLoopCycle() = 0;
         virtual void onDataClean() = 0;
         virtual MetricResult getMetrics() = 0;
+        virtual bool isAlive() { return true; };
 };
 
 #endif

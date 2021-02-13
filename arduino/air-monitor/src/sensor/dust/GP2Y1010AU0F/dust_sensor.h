@@ -12,7 +12,7 @@ struct DustSensorMeausure {
     String grade;
 };
 
-class GP2Y1010AU0FSensor : AbstractSensor {
+class GP2Y1010AU0FSensor : public AbstractSensor {
    public:
 
     GP2Y1010AU0FSensor(int ledPower, int measurePin);
@@ -21,7 +21,8 @@ class GP2Y1010AU0FSensor : AbstractSensor {
     void begin();
     void onLoopCycle();
     void onDataClean();
-    
+    bool isAlive();
+
     MetricResult getMetrics();
     DustSensorMeausure getDustMeasure();
 
@@ -29,6 +30,7 @@ class GP2Y1010AU0FSensor : AbstractSensor {
 
     GP2Y1010AU0F dustSensor;
     MetricResult metricResult;
+    double getAverageValue();
 
     int ledPower;
 

@@ -41,7 +41,7 @@ MetricResult GP2Y1010AU0FSensor::getMetrics() {
 }
 
 DustSensorMeausure GP2Y1010AU0FSensor::getDustMeasure() {
-    double outputV = sumOfOutputV / processedSamplesCount;  // average outputV
+    double outputV = getAverageValue();  // average outputV
     double ugm3 =
         dustSensor.getDustDensity(outputV);  // расчет концентрации пыли
     double aqi = dustSensor.getAQI(ugm3);          // вычисление aqi
@@ -91,4 +91,16 @@ void GP2Y1010AU0FSensor::processDustMeasureCycle(int defaultNumberOfSamples,
         processedSamplesCount++;
         delay(delayBetweenSamples);
     }
+}
+
+double GP2Y1010AU0FSensor::getAverageValue() {
+    return sumOfOutputV / processedSamplesCount;
+}
+
+/**
+ * it is actually a workaround because, 
+ * it reads analog input, so we dont know for sure then it is really alive
+*/
+bool GP2Y1010AU0FSensor::isAlive() {
+    return this->getAverageValue() > 0.04;
 }
