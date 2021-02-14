@@ -1,5 +1,5 @@
-### IoT Dipstick Prototype
-![scheme](./media/circuit-scheme-easyeda.svg)
+# IoT Dipstick
+![scheme](./media/infrastructure.png)
 
 ### Overview
 IoT based on ESP8266 ([NodeMCU v3 board](http://www.nodemcu.com/index_cn.html)) and [Yandex Cloud](https://cloud.yandex.ru/) 
@@ -36,3 +36,8 @@ and your environment settings, for more information see `arduino/scripts/create_
 * [Prehistory and Architecture notes](../../wiki/Prehistory-and-Architecture-notes) - Prehistory of an approach might be found here
 * [Alice abilities overview](https://yandex.ru/dev/dialogs/alice/doc/about.html) - Alice abilities development get startred
 * [Alice based on the cloud function](https://yandex.ru/dev/dialogs/alice/doc/deploy-ycloud-function.html) - How to integrate [alice-func](terraform/cloud-functions/alice-func) into Alice ability
+
+### IoT Dipstick Prototype
+![scheme](./media/circuit-scheme-easyeda.svg)
+![scheme](./media/yandex-monitoring.png)
+![scheme](./media/prototype.png)
