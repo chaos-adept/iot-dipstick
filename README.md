@@ -1,7 +1,6 @@
 ### IoT Dipstick Prototype
 ![scheme](./media/circuit-scheme-easyeda.svg)
 ![monitoring](./media/yandex-monitoring.png)
-![prototype](./media/prototype.png)
 
 ### Overview
 IoT based on ESP8266 ([NodeMCU v3 board](http://www.nodemcu.com/index_cn.html)) and [Yandex Cloud](https://cloud.yandex.ru/) 
