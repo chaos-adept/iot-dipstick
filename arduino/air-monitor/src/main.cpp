@@ -22,8 +22,8 @@ extern "C" {
 #include "sensor/dust/zh03b/zh03b_sensor.h"
 #include "time_utils.h"
 
-#define PUBLISH_INTERVAL (1000 * 60 * 1)  // once in the 1 minutes
-#define CYCLE_DELAY 9000                   // 6s
+#define PUBLISH_INTERVAL (1000 * 60 * 10)  // once in the 10 minutes
+#define CYCLE_DELAY 5000                   // 6s
 #define SESNOR_MIN_CLYCLE_DELAY_TO_SLEEP 3000     // sensors will go sleep only if cycle delay more than this value
 #define NTP_OFFSET 0                       // In seconds
 #define NTP_INTERVAL 60 * 1000             // In miliseconds

@@ -1,3 +1,6 @@
+### IoT Dipstick Prototype
+![breadboard](./media/Prototype.png) ![breadboard](./media/air-monitor-breadboard.png) ![breadboard](./media/circuit-scheme-easyeda.png)
+
 ### Overview
 IoT based on ESP8266 ([NodeMCU v3 board](http://www.nodemcu.com/index_cn.html)) and [Yandex Cloud](https://cloud.yandex.ru/) 
 with integration with [Alice](https://yandex.ru/dev/dialogs/alice/doc/about.html)  assistant see [alice-func](terraform/cloud-functions/alice-func)
