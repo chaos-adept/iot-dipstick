@@ -16,10 +16,10 @@ extern "C" {
 // './local_specific_variables.h.sample'
 #include "format/json_formatter.h"
 #include "local_specific_variables.h"
-#include "sensor/co2/z19b/z19b_sensor.h"
-#include "sensor/dht11/dht11_sensor.h"
+#include <co2/z19b/z19b_sensor.h>
+#include <dht11/dht11_sensor.h>
 // #include "sensor/dust/GP2Y1010AU0F/dust_sensor.h"
-#include "sensor/dust/zh03b/zh03b_sensor.h"
+#include <dust/zh03b/zh03b_sensor.h>
 #include "time_utils.h"
 
 #define PUBLISH_INTERVAL (1000 * 60 * 10)  // once in the 10 minutes
@@ -81,12 +81,19 @@ void dumpMemory() {
     DEBUG_SERIAL.println(system_get_free_heap_size());
 }
 
-void connect() {
+bool connect() {
     delay(5000);
     DEBUG_SERIAL.print("Conecting to wifi ...");
+    int MAX_WIFI_CONNECT_ATTEMPTS = 3;
+    int wifiConnectAttempts = 0;
     while (WiFi.status() != WL_CONNECTED) {
         DEBUG_SERIAL.print(".");
         delay(1000);
+        wifiConnectAttempts++;
+        if (wifiConnectAttempts > MAX_WIFI_CONNECT_ATTEMPTS) {
+            DEBUG_SERIAL.println("Max Wi-Fi connection attempts were reached.");
+            return false;
+        }
     }
     DEBUG_SERIAL.println(" Connected");
     net.setInsecure();
@@ -105,6 +112,8 @@ void connect() {
 
     boolean subcribed = client.subscribe(topicRegistryCommands.c_str());
     DEBUG_SERIAL.println(subcribed);
+
+    return true;
 }
 
 void messageReceived(char* topic, byte* payload, unsigned int length) {
@@ -247,13 +256,14 @@ void loop() {
 
     client.loop();
 
-    if (!client.connected()) {
-        connect();
+    bool hasConnected = client.connected() || connect();;
+    if (!hasConnected) {
+        DEBUG_SERIAL.println("Device can't connect to the network.");
     }
 
     dumpMemory();
 
-    updateLedStatus();
+    
 
     for (int indx = 0; indx < sensorCount; indx++) {
         sensors[indx]->onLoopCycle(); 
@@ -261,13 +271,15 @@ void loop() {
 
     dumpMemory();
 
-    if (needPublish) {
+    updateLedStatus(); //fixme it needs to be moved to the update state/render state section
+    if (needPublish && hasConnected) { //fixme it needs to be moved to the update state/render state section
         publishActualMetrics();
+    } else {
+        DEBUG_SERIAL.println("Metric publishing is skipped needPublish:" + String(needPublish) + " hasConnected:" + String(hasConnected));
     }
 
     dumpMemory();
     
-
     for (int indx = 0; indx < sensorCount; indx++) {
         sensors[indx]->onDataClean();
     }

@@ -7,7 +7,6 @@ resource "yandex_iot_core_registry" "iot_registry" {
   ]
 }
 
-
 resource "yandex_iot_core_device" "air_sensor" {
   count       = var.air_device_count
 

@@ -1,4 +1,4 @@
-#include "../sensor/abstract_sensor.h"
+#include <abstract_sensor.h>
 
 #ifndef JSON_FORMATTER_H
 #define JSON_FORMATTER_H
