@@ -3,7 +3,7 @@
 
 class SoilSensor : public AbstractSensor {
    public:
-    SoilSensor(int sclPin, int scaPin);
+    SoilSensor(int sdaPin, int sclPin);
     ~SoilSensor();
 
     void begin();
@@ -15,6 +15,6 @@ class SoilSensor : public AbstractSensor {
 
    private:
     int sclPin;
-    int scaPin;
+    int sdaPin;
     MetricResult soilHumidity[4];
 };
