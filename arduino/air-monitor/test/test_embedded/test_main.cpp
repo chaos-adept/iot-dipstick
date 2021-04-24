@@ -30,7 +30,7 @@ void test_led_builtin_pin_number(void) {
 
 void test_initialization(void) {
     
-    soilSensor.begin();
+    
 
     TEST_ASSERT_EQUAL_INT(true, soilSensor.isAlive());
 
@@ -38,22 +38,21 @@ void test_initialization(void) {
 }
 
 void test_metric_count(void) {
-    soilSensor.onLoopCycle();
     TEST_ASSERT_EQUAL_INT(EXPECTED_METRIC_COUNT, soilSensor.getMetricsCount());
 }
 
 void test_metric_values(void) {
     soilSensor.onLoopCycle();
+
     MetricResult* metricResults = soilSensor.getMetrics();
 
-    TEST_ASSERT_EQUAL_STRING_MESSAGE("255", metricResults[0].valueAsJsonPropVal.c_str(), "val 1");
-    TEST_ASSERT_EQUAL_STRING_MESSAGE("255", metricResults[1].valueAsJsonPropVal.c_str(), "val 2");
-    TEST_ASSERT_EQUAL_STRING_MESSAGE("255", metricResults[2].valueAsJsonPropVal.c_str(), "val 3");
-    TEST_ASSERT_EQUAL_STRING_MESSAGE("255", metricResults[3].valueAsJsonPropVal.c_str(), "val 4");
+    TEST_ASSERT_GREATER_OR_EQUAL_MESSAGE(230, metricResults[0].valueAsJsonPropVal.toInt(), "val 1");
+    TEST_ASSERT_GREATER_OR_EQUAL_MESSAGE(230, metricResults[1].valueAsJsonPropVal.toInt(), "val 2");
+    TEST_ASSERT_EQUAL_MESSAGE(0, metricResults[2].valueAsJsonPropVal.toInt(), "val 3");
+    TEST_ASSERT_EQUAL_MESSAGE(0, metricResults[3].valueAsJsonPropVal.toInt(), "val 4");
 }
 
 void test_metric_typeNames(void) {
-    soilSensor.onLoopCycle();
     MetricResult* metricResults = soilSensor.getMetrics();
 
     for (int i = 0; i < EXPECTED_METRIC_COUNT; i++) {
@@ -63,7 +62,6 @@ void test_metric_typeNames(void) {
 }
 
 void test_metric_typeKind(void) {
-    soilSensor.onLoopCycle();
     MetricResult* metricResults = soilSensor.getMetrics();
 
     for (int i = 0; i < EXPECTED_METRIC_COUNT; i++) {
@@ -78,13 +76,18 @@ void setup() {
     delay(2000);
 
     UNITY_BEGIN();    // IMPORTANT LINE!
+
+    soilSensor.begin();
+    pinMode(LED_BUILTIN, OUTPUT);
+
+
     RUN_TEST(test_led_builtin_pin_number);
     RUN_TEST(test_initialization);
 
-    pinMode(LED_BUILTIN, OUTPUT);
 }
 
 void loop() {
+    delay(500);
     RUN_TEST(test_metric_count);
     RUN_TEST(test_metric_values);
     RUN_TEST(test_metric_typeKind);
