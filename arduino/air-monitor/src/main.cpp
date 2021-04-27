@@ -18,11 +18,12 @@ extern "C" {
 #include "local_specific_variables.h"
 #include <co2/z19b/z19b_sensor.h>
 #include <dht11/dht11_sensor.h>
+#include <soil/soil_sensor.h>
 // #include "sensor/dust/GP2Y1010AU0F/dust_sensor.h"
 #include <dust/zh03b/zh03b_sensor.h>
 #include "time_utils.h"
 
-#define PUBLISH_INTERVAL (1000 * 60 * 10)  // once in the 10 minutes
+#define PUBLISH_INTERVAL (1000 * 60 * 1)  // once in the 10 minutes
 #define CYCLE_DELAY 5000                   // 6s
 #define SESNOR_MIN_CLYCLE_DELAY_TO_SLEEP 3000     // sensors will go sleep only if cycle delay more than this value
 #define NTP_OFFSET 0                       // In seconds
@@ -40,6 +41,11 @@ extern "C" {
 #define DUST_GP2Y_ANALOG_IN_PIN D5
 #define DUST_GP2Y_LED_CONTROL_PIN A0
 
+// FIXME overlap with the rest sensor pins, it is a reason of SOIL_MODE
+#define SOIL_MODE true
+#define SOIL_POD_COUNT 2
+#define I2C_PIN_SDA D1
+#define I2C_pin_SCL D2
 
 #define DHTTYPE DHT11  // DHT 11
 
@@ -48,11 +54,17 @@ WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, NTP_ADDRESS, NTP_OFFSET, NTP_INTERVAL);
 
 // GP2Y1010AU0FSensor sharpSensor(DUST_GP2Y_LED_CONTROL_PIN, DUST_GP2Y_ANALOG_IN_PIN);
+
+#ifdef SOIL_MODE
+SoilSensor soilSensor(I2C_PIN_SDA, I2C_pin_SCL, SOIL_POD_COUNT);
+AbstractSensor* sensors[] = {&soilSensor};
+#else
 Z19BSensor co2sensor(CO2_RX_PIN, CO2_TX_PIN);
 DHT11Sensor dth11Sensor(DHT_PIN, DHTTYPE);
 ZH03BSensor zh03Sensor(DUST_ZH038_RX, DUST_ZH038_TX);
-
 AbstractSensor* sensors[] = {&co2sensor, &dth11Sensor, &zh03Sensor};
+#endif
+
 const int sensorCount = sizeof(sensors) / sizeof(sensors[0]);
 
 String topicRegistryCommands = String("$registries/") +
@@ -203,8 +215,9 @@ void publishActualMetrics() {
         int resultMetricsCount = 0;
         for (int sensorIndx = 0; sensorIndx < aliveSensorCount; sensorIndx++) {
             AbstractSensor* sensor = aliveSensors[sensorIndx];
+            MetricResult* metrics = sensor->getMetrics();
             for (int metricIndx = 0; metricIndx < sensor->getMetricsCount(); metricIndx++) {
-                results[resultMetricsCount] = sensor->getMetrics()[metricIndx];
+                results[resultMetricsCount] = metrics[metricIndx];
                 resultMetricsCount++;
             }
         }
@@ -296,7 +309,7 @@ void loop() {
         return;
     }
 
-    DEBUG_SERIAL.println(" actualDelay ");
+    DEBUG_SERIAL.print(" actualDelay ");
     unsigned long actualDelay = CYCLE_DELAY - delta;
     DEBUG_SERIAL.println(actualDelay);
 

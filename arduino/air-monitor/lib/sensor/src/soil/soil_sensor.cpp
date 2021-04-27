@@ -12,7 +12,7 @@ void setDAC(byte val){
    Wire.endTransmission();                  // завершаем соединение
 }
 
-SoilSensor::SoilSensor(int sdaPin, int sclPin): sclPin(sclPin), sdaPin(sdaPin) {
+SoilSensor::SoilSensor(int sdaPin, int sclPin, int sensorCount): sclPin(sclPin), sdaPin(sdaPin), sensorCount(sensorCount) {
 
     for (int i = 0; i < getMetricsCount(); i++) {
         this->soilHumidity[i] = { String("Soil_Humidity_") + String(i), String("Float"), String("0") };
@@ -85,7 +85,7 @@ void SoilSensor::onDataClean() {
 }
 
 int SoilSensor::getMetricsCount() {
-    return 4;
+    return sensorCount;
 }
 
 MetricResult* SoilSensor::getMetrics() {
