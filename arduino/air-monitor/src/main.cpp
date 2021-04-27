@@ -1,5 +1,6 @@
 #define DEBUG true
 #define LOGGING_ENABLED true
+// #define LOGGING_MEMORY true
 
 #include <debug/common.h>
 
@@ -27,8 +28,9 @@ extern "C" {
 #include <dust/zh03b/zh03b_sensor.h>
 #include "time_utils.h"
 
-#define PUBLISH_INTERVAL (1000 * 60 * 1)  // once in the 10 minutes
-#define CYCLE_DELAY 5000                   // 6s
+#define CYCLE_MINUTES 15
+#define PUBLISH_INTERVAL (1000 * 60 * (CYCLE_MINUTES + 1))  // once in the x minutes
+#define CYCLE_DELAY (1000 * 60 * CYCLE_MINUTES)                  
 #define SESNOR_MIN_CLYCLE_DELAY_TO_SLEEP 3000     // sensors will go sleep only if cycle delay more than this value
 #define NTP_OFFSET 0                       // In seconds
 #define NTP_INTERVAL 60 * 1000             // In miliseconds
@@ -37,14 +39,14 @@ extern "C" {
 // PINS
 #define CO2_RX_PIN D6
 #define CO2_TX_PIN D7
-#define DHT_PIN D1
+#define DHT_PIN D5
 #define DUST_ZH038_RX D2
 #define DUST_ZH038_TX D3
 #define DUST_GP2Y_ANALOG_IN_PIN D5
 #define DUST_GP2Y_LED_CONTROL_PIN A0
 
 // FIXME overlap with the rest sensor pins, it is a reason of SOIL_MODE
-#define SOIL_MODE true
+// #define SOIL_MODE true
 #define SOIL_POD_COUNT 2
 #define I2C_PIN_SDA D1
 #define I2C_pin_SCL D2
@@ -54,8 +56,6 @@ extern "C" {
 
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, NTP_ADDRESS, NTP_OFFSET, NTP_INTERVAL);
-
-// GP2Y1010AU0FSensor sharpSensor(DUST_GP2Y_LED_CONTROL_PIN, DUST_GP2Y_ANALOG_IN_PIN);
 
 #ifdef SOIL_MODE
 SoilSensor soilSensor(I2C_PIN_SDA, I2C_pin_SCL, SOIL_POD_COUNT);
@@ -82,17 +82,21 @@ boolean needPublish = true;
 boolean isSensorsSleeping = true;
 bool lightIsOn = true;
 
-unsigned long lastLoopStartTime = 0L;
-unsigned long timeFromTheLastPublish = PUBLISH_INTERVAL;
+unsigned long NONE = 0L;
+unsigned long lastLoopStartTime = NONE;
+unsigned long currentLoopStartTime = NONE;
+unsigned long lastPublishTime = NONE;
+//unsigned long timeFromTheLastPublish = PUBLISH_INTERVAL;
 
 WiFiClientSecure net;
 PubSubClient client(net);
 BearSSL::X509List x509(registry_root_ca);
 
-
 void dumpMemory() {
+    #ifdef LOGGING_MEMORY
     TRACE("Free memory: ");
     TRACELN(system_get_free_heap_size());
+    #endif
 }
 
 bool connect() {
@@ -192,8 +196,6 @@ void publishActualMetrics() {
         digitalWrite(LED_BUILTIN, LOW);
     }
 
-    timeClient.update();
-
     // get alive sensors
     int aliveSensorCount = 0;
     int totalExpectedMetricCount = 0;
@@ -231,12 +233,14 @@ void publishActualMetrics() {
         if (client.publish(topicEvents.c_str(), msg)) {
             TRACELN(topicEvents);
             TRACELN("Publish ok");
+            lastPublishTime = millis();
         } else {
             TRACELN("Publish failed");
         }
+
     }
 
-    timeFromTheLastPublish = 0L;
+    
 }
 
 void updateLedStatus() {
@@ -248,14 +252,48 @@ void updateLedStatus() {
     }
 }
 
+void updateState() {
+    updateLedStatus(); //fixme it needs to be moved to the update state/render state section
+
+    unsigned long timeFromTheLastPublish = millis() - lastPublishTime;
+    needPublish = (PUBLISH_INTERVAL <= (timeFromTheLastPublish)) || (lastPublishTime == NONE);
+
+    TRACELN("next cycle, time from last publish: " +
+                        String(timeFromTheLastPublish));
+
+    if (needPublish) {
+        client.loop();
+
+        bool hasConnected = client.connected() || connect();;
+        if (!hasConnected) {
+            TRACELN("Device can't connect to the network.");
+        }
+
+        TRACELN("Metric publishing is skipped needPublish:" + String(needPublish) + " hasConnected:" + String(hasConnected));
+
+        timeClient.update();
+
+        dumpMemory();
+
+        // turn on watering if it is needed here
+        // soilSensor.getMetricValueAsFloat(i);
+        // if more than X
+        // waterPump.open();
+        // delay(); amount of watering
+        // notifyAboutWateringOverMetrics();
+
+
+
+        if (needPublish && hasConnected) { //fixme it needs to be moved to the update state/render state section
+            publishActualMetrics();
+        }
+    }
+}
+
 void loop() {
     dumpMemory();
-
-    unsigned long loopStartTime = millis();
-    timeFromTheLastPublish += loopStartTime - lastLoopStartTime;
-    lastLoopStartTime = loopStartTime;
-
-    needPublish = PUBLISH_INTERVAL <= timeFromTheLastPublish;
+    currentLoopStartTime = millis();
+    
 
     if (isSensorsSleeping) {
         for (int indx = 0; indx < sensorCount; indx++) {
@@ -266,32 +304,13 @@ void loop() {
 
     dumpMemory();
 
-    TRACELN("next cycle, time from last publish: " +
-                         String(timeFromTheLastPublish));
-
-    client.loop();
-
-    bool hasConnected = client.connected() || connect();;
-    if (!hasConnected) {
-        TRACELN("Device can't connect to the network.");
-    }
-
-    dumpMemory();
-
-    
-
     for (int indx = 0; indx < sensorCount; indx++) {
         sensors[indx]->onLoopCycle(); 
     }
 
     dumpMemory();
 
-    updateLedStatus(); //fixme it needs to be moved to the update state/render state section
-    if (needPublish && hasConnected) { //fixme it needs to be moved to the update state/render state section
-        publishActualMetrics();
-    } else {
-        TRACELN("Metric publishing is skipped needPublish:" + String(needPublish) + " hasConnected:" + String(hasConnected));
-    }
+    updateState();
 
     dumpMemory();
     
@@ -304,10 +323,12 @@ void loop() {
     TRACE("sleep for ");
     TRACE(CYCLE_DELAY);
     TRACE(" cycle actual time ");
-    unsigned long delta = (loopEndTime - loopStartTime);
+    unsigned long delta = (loopEndTime - currentLoopStartTime);
+    
     TRACE(delta);
     if (delta > CYCLE_DELAY) {
         TRACELN(", Cycle time more than expected - skip cycle delay.");
+        lastLoopStartTime = currentLoopStartTime;
         return;
     }
 
@@ -324,6 +345,8 @@ void loop() {
         }
         isSensorsSleeping = true;
     }
+
+    lastLoopStartTime = currentLoopStartTime;
 
     dumpMemory();
     delay(actualDelay);
