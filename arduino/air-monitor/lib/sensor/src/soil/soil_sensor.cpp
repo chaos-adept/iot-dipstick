@@ -2,6 +2,7 @@
 #include "soil_sensor.h"
 #include <ESP8266WiFi.h>
 #include <Wire.h>
+#include <debug/common.h>
 #define PCF8591 0x48 
 
 
@@ -26,13 +27,13 @@ SoilSensor::~SoilSensor() {
 }
 
 void SoilSensor::begin() {
-    Serial.println("Soil Sensor Begin");
+    TRACELN("Soil Sensor Begin");
 
     #if defined (ESP8266) || defined(ESP32)
-    Serial.print("sda ");
-    Serial.print(sdaPin);
-    Serial.print(" scl ");
-    Serial.println(sclPin);
+    TRACE("sda ");
+    TRACE(sdaPin);
+    TRACE(" scl ");
+    TRACELN(sclPin);
     Wire.begin(sdaPin, sclPin);
     #else
     Wire.begin();
@@ -48,7 +49,7 @@ void SoilSensor::begin() {
 }
 
 void SoilSensor::onLoopCycle() {
-    Serial.println("Soil Sensor loop cycle");
+    TRACELN("Soil Sensor loop cycle");
     Wire.beginTransmission(PCF8591); // wake up PCF8591
     Wire.write(0x04); // control byte - read ADC0 then auto-increment
     Wire.endTransmission(); // end tranmission
@@ -67,10 +68,10 @@ void SoilSensor::onLoopCycle() {
     this->soilHumidity[2].valueAsJsonPropVal = String(value2);
     this->soilHumidity[3].valueAsJsonPropVal = String(value3);
 
-    Serial.println(value0);
-    Serial.println(value1);
-    Serial.println(value2);
-    Serial.println(value3);
+    TRACELN(value0);
+    TRACELN(value1);
+    TRACELN(value2);
+    TRACELN(value3);
 
     setDAC(value0);
 }

@@ -1,4 +1,8 @@
 #define DEBUG true
+#define LOGGING_ENABLED true
+
+#include <debug/common.h>
+
 extern "C" {
     #include "user_interface.h"
 }
@@ -29,8 +33,6 @@ extern "C" {
 #define NTP_OFFSET 0                       // In seconds
 #define NTP_INTERVAL 60 * 1000             // In miliseconds
 #define NTP_ADDRESS "ru.pool.ntp.org"
-#define DEBUG_SERIAL Serial
-#define DEBUG_SERIAL_BAUDRATE 115200
 
 // PINS
 #define CO2_RX_PIN D6
@@ -89,64 +91,64 @@ BearSSL::X509List x509(registry_root_ca);
 
 
 void dumpMemory() {
-    DEBUG_SERIAL.print("Free memory: ");
-    DEBUG_SERIAL.println(system_get_free_heap_size());
+    TRACE("Free memory: ");
+    TRACELN(system_get_free_heap_size());
 }
 
 bool connect() {
     delay(5000);
-    DEBUG_SERIAL.print("Conecting to wifi ...");
+    TRACE("Conecting to wifi ...");
     int MAX_WIFI_CONNECT_ATTEMPTS = 3;
     int wifiConnectAttempts = 0;
     while (WiFi.status() != WL_CONNECTED) {
-        DEBUG_SERIAL.print(".");
+        TRACE(".");
         delay(1000);
         wifiConnectAttempts++;
         if (wifiConnectAttempts > MAX_WIFI_CONNECT_ATTEMPTS) {
-            DEBUG_SERIAL.println("Max Wi-Fi connection attempts were reached.");
+            TRACELN("Max Wi-Fi connection attempts were reached.");
             return false;
         }
     }
-    DEBUG_SERIAL.println(" Connected");
+    TRACELN(" Connected");
     net.setInsecure();
-    DEBUG_SERIAL.print("Connecting to Yandex IoT Core as");
-    DEBUG_SERIAL.print(yandexIoTCoreDeviceId);
-    DEBUG_SERIAL.print(" ...");
+    TRACE("Connecting to Yandex IoT Core as");
+    TRACE(yandexIoTCoreDeviceId);
+    TRACE(" ...");
     while (!client.connect("Esp8266Client", yandexIoTCoreDeviceId,
                            yandexIoTCoreDevicePassword)) {
-        DEBUG_SERIAL.print(".");
+        TRACE(".");
         delay(1000);
     }
-    DEBUG_SERIAL.println(" Connected");
+    TRACELN(" Connected");
 
-    DEBUG_SERIAL.println("registry command topic:");
-    DEBUG_SERIAL.println(topicRegistryCommands);
+    TRACELN("registry command topic:");
+    TRACELN(topicRegistryCommands);
 
     boolean subcribed = client.subscribe(topicRegistryCommands.c_str());
-    DEBUG_SERIAL.println(subcribed);
+    TRACELN(subcribed);
 
     return true;
 }
 
 void messageReceived(char* topic, byte* payload, unsigned int length) {
     String topicString = String(topic);
-    DEBUG_SERIAL.print("Message received. Topic: ");
-    DEBUG_SERIAL.println(topicString.c_str());
+    TRACE("Message received. Topic: ");
+    TRACELN(topicString.c_str());
     String payloadStr = "";
     for (unsigned int i = 0; i < length; i++) {
         payloadStr += (char)payload[i];
     }
-    DEBUG_SERIAL.print("Payload: ");
-    DEBUG_SERIAL.println(payloadStr);
+    TRACE("Payload: ");
+    TRACELN(payloadStr);
 
     if (topicRegistryCommandLight == topicString) {
-        DEBUG_SERIAL.print("Handling light cmd");
+        TRACE("Handling light cmd");
         lightIsOn = payloadStr.equals("True");
-        DEBUG_SERIAL.println(lightIsOn);
+        TRACELN(lightIsOn);
 
         digitalWrite(LED_BUILTIN, lightIsOn ? LOW : HIGH);
     } else {
-        DEBUG_SERIAL.println("Unknown command");
+        TRACELN("Unknown command");
     }
 }
 
@@ -162,9 +164,9 @@ void setup() {
     dumpMemory();
 
     delay(10);
-    DEBUG_SERIAL.println("Device started");
-    DEBUG_SERIAL.print("Sensor count: ");
-    DEBUG_SERIAL.println(sensorCount);
+    TRACELN("Device started");
+    TRACE("Sensor count: ");
+    TRACELN(sensorCount);
     
     WiFi.begin(ssid, password);
     client.setServer(mqttserver, mqttport);
@@ -206,7 +208,7 @@ void publishActualMetrics() {
     }
 
     if (aliveSensorCount == 0) {
-        DEBUG_SERIAL.println("no alive sensors to send data");
+        TRACELN("no alive sensors to send data");
     } else {
         
         // results might be more than sensors
@@ -224,13 +226,13 @@ void publishActualMetrics() {
 
         char* msg = threadUnsafeFormatMetricsAsJson(timeClient.getEpochTime(),
                                                     results, resultMetricsCount);
-        DEBUG_SERIAL.println(msg);
+        TRACELN(msg);
 
         if (client.publish(topicEvents.c_str(), msg)) {
-            DEBUG_SERIAL.println(topicEvents);
-            DEBUG_SERIAL.println("Publish ok");
+            TRACELN(topicEvents);
+            TRACELN("Publish ok");
         } else {
-            DEBUG_SERIAL.println("Publish failed");
+            TRACELN("Publish failed");
         }
     }
 
@@ -264,14 +266,14 @@ void loop() {
 
     dumpMemory();
 
-    DEBUG_SERIAL.println("next cycle, time from last publish: " +
+    TRACELN("next cycle, time from last publish: " +
                          String(timeFromTheLastPublish));
 
     client.loop();
 
     bool hasConnected = client.connected() || connect();;
     if (!hasConnected) {
-        DEBUG_SERIAL.println("Device can't connect to the network.");
+        TRACELN("Device can't connect to the network.");
     }
 
     dumpMemory();
@@ -288,7 +290,7 @@ void loop() {
     if (needPublish && hasConnected) { //fixme it needs to be moved to the update state/render state section
         publishActualMetrics();
     } else {
-        DEBUG_SERIAL.println("Metric publishing is skipped needPublish:" + String(needPublish) + " hasConnected:" + String(hasConnected));
+        TRACELN("Metric publishing is skipped needPublish:" + String(needPublish) + " hasConnected:" + String(hasConnected));
     }
 
     dumpMemory();
@@ -299,19 +301,19 @@ void loop() {
 
     unsigned long loopEndTime = millis();
 
-    DEBUG_SERIAL.print("sleep for ");
-    DEBUG_SERIAL.print(CYCLE_DELAY);
-    DEBUG_SERIAL.print(" cycle actual time ");
+    TRACE("sleep for ");
+    TRACE(CYCLE_DELAY);
+    TRACE(" cycle actual time ");
     unsigned long delta = (loopEndTime - loopStartTime);
-    DEBUG_SERIAL.print(delta);
+    TRACE(delta);
     if (delta > CYCLE_DELAY) {
-        DEBUG_SERIAL.println(", Cycle time more than expected - skip cycle delay.");
+        TRACELN(", Cycle time more than expected - skip cycle delay.");
         return;
     }
 
-    DEBUG_SERIAL.print(" actualDelay ");
+    TRACE(" actualDelay ");
     unsigned long actualDelay = CYCLE_DELAY - delta;
-    DEBUG_SERIAL.println(actualDelay);
+    TRACELN(actualDelay);
 
     dumpMemory();
 
