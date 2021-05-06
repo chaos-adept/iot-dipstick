@@ -1,5 +1,6 @@
 #define DEBUG true
 #define LOGGING_ENABLED true
+#define ENABLE_NETWORK_PUBLISH false
 // #define LOGGING_MEMORY true
 
 #include <debug/common.h>
@@ -28,9 +29,9 @@ extern "C" {
 #include <dust/zh03b/zh03b_sensor.h>
 #include "time_utils.h"
 
-#define CYCLE_MINUTES 15
-#define PUBLISH_INTERVAL (1000 * 60 * (CYCLE_MINUTES + 1))  // once in the x minutes
-#define CYCLE_DELAY (1000 * 60 * CYCLE_MINUTES)                  
+#define CYCLE_SECONDS 2
+#define PUBLISH_INTERVAL (1000 * CYCLE_SECONDS + 1)  // once in the x minutes
+#define CYCLE_DELAY (1000 * CYCLE_SECONDS)                  
 #define SESNOR_MIN_CLYCLE_DELAY_TO_SLEEP 3000     // sensors will go sleep only if cycle delay more than this value
 #define NTP_OFFSET 0                       // In seconds
 #define NTP_INTERVAL 60 * 1000             // In miliseconds
@@ -46,7 +47,7 @@ extern "C" {
 #define DUST_GP2Y_LED_CONTROL_PIN A0
 
 // FIXME overlap with the rest sensor pins, it is a reason of SOIL_MODE
-// #define SOIL_MODE true
+#define SOIL_MODE true
 #define SOIL_POD_COUNT 2
 #define I2C_PIN_SDA D1
 #define I2C_pin_SCL D2
@@ -58,8 +59,13 @@ WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, NTP_ADDRESS, NTP_OFFSET, NTP_INTERVAL);
 
 #ifdef SOIL_MODE
+#define MIN_SOIL_HUMIDITY 100
+#define OPEN_WATERING_GATETIME 10
+
+
 SoilSensor soilSensor(I2C_PIN_SDA, I2C_pin_SCL, SOIL_POD_COUNT);
 AbstractSensor* sensors[] = {&soilSensor};
+int gatePins[] = { D5, D6 };
 #else
 Z19BSensor co2sensor(CO2_RX_PIN, CO2_TX_PIN);
 DHT11Sensor dth11Sensor(DHT_PIN, DHTTYPE);
@@ -158,6 +164,12 @@ void messageReceived(char* topic, byte* payload, unsigned int length) {
 
 void setup() {
     pinMode(LED_BUILTIN, OUTPUT);
+    #if SOIL_MODE
+    for (int i = 0; i < sizeof(gatePins); i++) {
+        pinMode(gatePins[i], OUTPUT);  
+        digitalWrite(gatePins[i], LOW);  
+    }
+    #endif
     digitalWrite(LED_BUILTIN, LOW);
 
     delay(1000);
@@ -230,6 +242,7 @@ void publishActualMetrics() {
                                                     results, resultMetricsCount);
         TRACELN(msg);
 
+        #if ENABLE_NETWORK_PUBLISH
         if (client.publish(topicEvents.c_str(), msg)) {
             TRACELN(topicEvents);
             TRACELN("Publish ok");
@@ -237,6 +250,9 @@ void publishActualMetrics() {
         } else {
             TRACELN("Publish failed");
         }
+        #else
+            lastPublishTime = millis();
+        #endif
 
     }
 
@@ -258,9 +274,34 @@ void updateState() {
     unsigned long timeFromTheLastPublish = millis() - lastPublishTime;
     needPublish = (PUBLISH_INTERVAL <= (timeFromTheLastPublish)) || (lastPublishTime == NONE);
 
+    // fixme extract to another class or method
+    // turn on watering if it is needed here
+    // soilSensor.getMetricValueAsFloat(i);
+
+    MetricResult* metrics = soilSensor.getMetrics();
+    int minSoilHumidity = MIN_SOIL_HUMIDITY;
+    int gateOpenTime = OPEN_WATERING_GATETIME;
+    for (int i = 0; i < soilSensor.getMetricsCount(); i++) {
+        float value = metrics[i].valueAsJsonPropVal.toFloat();
+        if (value > minSoilHumidity) {
+            TRACE("open pod gate: ");
+            TRACE(i+1);
+            TRACE("for s");
+            TRACELN(gateOpenTime);
+            digitalWrite(gatePins[i], HIGH); 
+            delay(gateOpenTime);
+            digitalWrite(gatePins[i], LOW); 
+            TRACELN("... close gate for pod #");
+            TRACELN("... closed gate");           
+        } else {
+            TRACE("watering don't need for pod #"); TRACELN(i+1);
+        }
+    }
+
+    #if ENABLE_NETWORK_PUBLISH
     TRACELN("next cycle, time from last publish: " +
                         String(timeFromTheLastPublish));
-
+    
     if (needPublish) {
         client.loop();
 
@@ -275,19 +316,14 @@ void updateState() {
 
         dumpMemory();
 
-        // turn on watering if it is needed here
-        // soilSensor.getMetricValueAsFloat(i);
-        // if more than X
-        // waterPump.open();
-        // delay(); amount of watering
-        // notifyAboutWateringOverMetrics();
 
-
-
+        //push metrics
         if (needPublish && hasConnected) { //fixme it needs to be moved to the update state/render state section
             publishActualMetrics();
         }
+
     }
+    #endif
 }
 
 void loop() {

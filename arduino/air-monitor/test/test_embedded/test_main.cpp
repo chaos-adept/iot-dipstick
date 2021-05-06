@@ -93,5 +93,6 @@ void loop() {
     RUN_TEST(test_metric_values);
     RUN_TEST(test_metric_typeKind);
     RUN_TEST(test_metric_typeNames);
+    RUN_TEST(test_metric_values_as_float);
     UNITY_END(); // stop unit testing
 }

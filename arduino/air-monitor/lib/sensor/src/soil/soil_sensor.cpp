@@ -1,3 +1,6 @@
+#define DEBUG true
+#define LOGGING_ENABLED true
+
 #include <Arduino.h>
 #include "soil_sensor.h"
 #include <ESP8266WiFi.h>
