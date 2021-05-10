@@ -1,4 +1,3 @@
-#pragma once
 #include <Arduino.h>
 
 #ifndef ABSTRACT_SENSOR_H
