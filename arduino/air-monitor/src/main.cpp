@@ -26,11 +26,10 @@ extern "C" {
 #include <dht11/dht11_sensor.h>
 #include <soil/soil_sensor.h>
 #include <water_controller.h>
-// #include "sensor/dust/GP2Y1010AU0F/dust_sensor.h"
 #include <dust/zh03b/zh03b_sensor.h>
 #include "time_utils.h"
 
-#define CYCLE_SECONDS 60 * 10
+#define CYCLE_SECONDS 60 * 15
 #define PUBLISH_INTERVAL (1000 * CYCLE_SECONDS + 1)  // once in the x minutes
 #define CYCLE_DELAY (1000 * CYCLE_SECONDS)                  
 #define SESNOR_MIN_CLYCLE_DELAY_TO_SLEEP 3000     // sensors will go sleep only if cycle delay more than this value
@@ -277,55 +276,11 @@ void updateLedStatus() {
 MetricResult* performWatering() {
     waterController.performWateringIfNeeded(soilSensor.getMetrics());
     return waterController.getMetrics();
-    // MetricResult* metrics = soilSensor.getMetrics();
-    
-    // for (int i = 0; i < soilSensor.getMetricsCount(); i++) {
-    //     TRACE("Processing Pot #"); TRACELN(i);
-
-    //     float value = metrics[i].valueAsJsonPropVal.toFloat();
-
-    //     gateMetrics[i].kind = "Pod-" + String(i) + "-Watering";
-    //     gateMetrics[i].valueTypeName = "Float"; // needs to be boolean  
-
-    //     if (value < MIN_SOIL_HUMIDITY) {
-    //         // start watering cycles
-    //         int amountOfWater = gateWaterAmount[i];
-    //         TRACEVALN("Gate amount of water ", amountOfWater);
-    //         int amountOfWaterPerCycle = gateWaterAmount[i] / WATER_CYCLE_COUNT;
-    //         int gatePerCycleDelay = amountOfWaterPerCycle / WATER_SPEED_MILLS_PER_SEC;
-    //         TRACEVALN("Gate Cycle Delay ", gatePerCycleDelay);
-    //         TRACELN("Start Watering Cycles");
-    //         TRACEVALN("Total Cycle Iterations", WATER_CYCLE_COUNT);
-            
-
-    //         for (int wi = 0; wi < WATER_CYCLE_COUNT; wi++) {
-    //             TRACEVALN("cycle", wi);
-    //             TRACEVALN("open pod gate for seconds", gatePerCycleDelay);
-    //             digitalWrite(gatePins[i], HIGH);
-    //             delay(gatePerCycleDelay);
-    //             digitalWrite(gatePins[i], LOW); 
-    //             TRACELN("... closed gate");
-    //             TRACEVALN("sleep in cycle ms", WATER_CYCLE_DELAY);
-    //         }
-
-    //         TRACELN("Complete Watering Cycles");
-
-
-    //         gateMetrics[i].valueAsJsonPropVal = "1";
-    //     } else {
-    //         TRACE("watering don't need for pod #"); TRACELN(i+1);
-    //         gateMetrics[i].valueAsJsonPropVal = "0";
-    //     }
-        
-    // }
-
-    // return gateMetrics;
 }
 
 boolean wateringAndPublishMetrics() {
     MetricResult* gateMetrics = performWatering();
     return publishMetrics(gateMetrics, SOIL_POD_COUNT);
-    return false;
 }
 
 void updateState() {
