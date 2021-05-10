@@ -29,12 +29,7 @@ void test_led_builtin_pin_number(void) {
 }
 
 void test_initialization(void) {
-    
-    
-
     TEST_ASSERT_EQUAL_INT(true, soilSensor.isAlive());
-
-    
 }
 
 void test_metric_count(void) {
@@ -42,15 +37,13 @@ void test_metric_count(void) {
 }
 
 void test_metric_values(void) {
-    soilSensor.onLoopCycle();
-
     MetricResult* metricResults = soilSensor.getMetrics();
 
     // note, it is unordered because for some reasons indexes are wrong under non-test env
-    TEST_ASSERT_GREATER_OR_EQUAL_MESSAGE(230, metricResults[1].valueAsJsonPropVal.toInt(), "val 1");
-    TEST_ASSERT_GREATER_OR_EQUAL_MESSAGE(230, metricResults[2].valueAsJsonPropVal.toInt(), "val 2");
-    TEST_ASSERT_EQUAL_MESSAGE(0, metricResults[0].valueAsJsonPropVal.toInt(), "val 3");
-    TEST_ASSERT_EQUAL_MESSAGE(0, metricResults[3].valueAsJsonPropVal.toInt(), "val 4");
+    TEST_ASSERT_LESS_OR_EQUAL_MESSAGE(5, metricResults[0].valueAsJsonPropVal.toFloat(), (String("val 1: ") + metricResults[0].valueAsJsonPropVal).c_str());
+    TEST_ASSERT_LESS_OR_EQUAL_MESSAGE(5, metricResults[1].valueAsJsonPropVal.toFloat(), (String("val 2: ")  + metricResults[1].valueAsJsonPropVal).c_str());
+    TEST_ASSERT_EQUAL_MESSAGE(100, metricResults[2].valueAsJsonPropVal.toInt(), "val 3");
+    TEST_ASSERT_EQUAL_MESSAGE(100, metricResults[3].valueAsJsonPropVal.toInt(), "val 4");
 }
 
 void test_metric_typeNames(void) {
@@ -81,7 +74,6 @@ void setup() {
     soilSensor.begin();
     pinMode(LED_BUILTIN, OUTPUT);
 
-
     RUN_TEST(test_led_builtin_pin_number);
     RUN_TEST(test_initialization);
 
@@ -89,10 +81,12 @@ void setup() {
 
 void loop() {
     delay(500);
+    
+    soilSensor.onLoopCycle();
+
     RUN_TEST(test_metric_count);
     RUN_TEST(test_metric_values);
     RUN_TEST(test_metric_typeKind);
     RUN_TEST(test_metric_typeNames);
-    RUN_TEST(test_metric_values_as_float);
     UNITY_END(); // stop unit testing
 }

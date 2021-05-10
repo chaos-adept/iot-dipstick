@@ -1,6 +1,6 @@
 #define DEBUG true
 #define LOGGING_ENABLED true
-#define ENABLE_NETWORK_PUBLISH false
+#define ENABLE_NETWORK_PUBLISH true
 // #define LOGGING_MEMORY true
 
 #include <debug/common.h>
@@ -29,7 +29,7 @@ extern "C" {
 #include <dust/zh03b/zh03b_sensor.h>
 #include "time_utils.h"
 
-#define CYCLE_SECONDS 2
+#define CYCLE_SECONDS 60 * 15
 #define PUBLISH_INTERVAL (1000 * CYCLE_SECONDS + 1)  // once in the x minutes
 #define CYCLE_DELAY (1000 * CYCLE_SECONDS)                  
 #define SESNOR_MIN_CLYCLE_DELAY_TO_SLEEP 3000     // sensors will go sleep only if cycle delay more than this value
@@ -59,8 +59,13 @@ WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, NTP_ADDRESS, NTP_OFFSET, NTP_INTERVAL);
 
 #ifdef SOIL_MODE
-#define MIN_SOIL_HUMIDITY 100
-#define OPEN_WATERING_GATETIME 10
+// 0 himiduty, 100 in water
+// min souil humidiuty should be determined
+#define MIN_SOIL_HUMIDITY 50
+
+// 10s = 600 ml
+#define OPEN_WATERING_GATETIME 1000 * 10
+
 
 
 SoilSensor soilSensor(I2C_PIN_SDA, I2C_pin_SCL, SOIL_POD_COUNT);
@@ -201,14 +206,33 @@ void setup() {
     delay(3000);
 }
 
-void publishActualMetrics() {
+boolean publishMetrics(MetricResult* metrics, int metricsCount) {
     if (lightIsOn) {
         digitalWrite(LED_BUILTIN, HIGH);
         delay(10);
         digitalWrite(LED_BUILTIN, LOW);
     }
 
-    // get alive sensors
+    char* msg = threadUnsafeFormatMetricsAsJson(timeClient.getEpochTime(),
+                                                metrics, metricsCount);
+    TRACELN(msg);
+
+    #if ENABLE_NETWORK_PUBLISH
+    if (client.publish(topicEvents.c_str(), msg)) {
+        TRACELN(topicEvents);
+        TRACELN("Publish ok");
+        return true;
+    } else {
+        TRACELN("Publish failed");
+        return false;
+    }
+    #else
+        return true;
+    #endif
+}
+
+boolean publishSensorMetrics() {
+   // get alive sensors
     int aliveSensorCount = 0;
     int totalExpectedMetricCount = 0;
     AbstractSensor* aliveSensors[sensorCount];
@@ -223,6 +247,7 @@ void publishActualMetrics() {
 
     if (aliveSensorCount == 0) {
         TRACELN("no alive sensors to send data");
+        return true;
     } else {
         
         // results might be more than sensors
@@ -238,25 +263,8 @@ void publishActualMetrics() {
             }
         }
 
-        char* msg = threadUnsafeFormatMetricsAsJson(timeClient.getEpochTime(),
-                                                    results, resultMetricsCount);
-        TRACELN(msg);
-
-        #if ENABLE_NETWORK_PUBLISH
-        if (client.publish(topicEvents.c_str(), msg)) {
-            TRACELN(topicEvents);
-            TRACELN("Publish ok");
-            lastPublishTime = millis();
-        } else {
-            TRACELN("Publish failed");
-        }
-        #else
-            lastPublishTime = millis();
-        #endif
-
-    }
-
-    
+        return publishMetrics(results, totalExpectedMetricCount);
+    }    
 }
 
 void updateLedStatus() {
@@ -268,35 +276,43 @@ void updateLedStatus() {
     }
 }
 
+boolean wateringAndPublishMetrics() {
+    MetricResult gateMetrics[SOIL_POD_COUNT];
+    MetricResult* metrics = soilSensor.getMetrics();
+    for (int i = 0; i < soilSensor.getMetricsCount(); i++) {
+        float value = metrics[i].valueAsJsonPropVal.toFloat();
+
+        gateMetrics[i].kind = "Pod-" + String(i) + "-Watering";
+        gateMetrics[i].valueTypeName = "Float"; // needs to be boolean  
+
+        if (value < MIN_SOIL_HUMIDITY) {
+            TRACE("open pod gate: ");
+            TRACE(i+1);
+            TRACE("for s");
+            TRACELN(OPEN_WATERING_GATETIME);
+            digitalWrite(gatePins[i], HIGH);
+            delay(OPEN_WATERING_GATETIME);
+            digitalWrite(gatePins[i], LOW); 
+            TRACELN("... close gate for pod #");
+            TRACELN("... closed gate");
+
+            gateMetrics[i].valueAsJsonPropVal = "1";
+        } else {
+            TRACE("watering don't need for pod #"); TRACELN(i+1);
+            gateMetrics[i].valueAsJsonPropVal = "0";
+        }
+        
+    }
+
+    return publishMetrics(gateMetrics, SOIL_POD_COUNT);
+}
+
 void updateState() {
     updateLedStatus(); //fixme it needs to be moved to the update state/render state section
 
     unsigned long timeFromTheLastPublish = millis() - lastPublishTime;
     needPublish = (PUBLISH_INTERVAL <= (timeFromTheLastPublish)) || (lastPublishTime == NONE);
 
-    // fixme extract to another class or method
-    // turn on watering if it is needed here
-    // soilSensor.getMetricValueAsFloat(i);
-
-    MetricResult* metrics = soilSensor.getMetrics();
-    int minSoilHumidity = MIN_SOIL_HUMIDITY;
-    int gateOpenTime = OPEN_WATERING_GATETIME;
-    for (int i = 0; i < soilSensor.getMetricsCount(); i++) {
-        float value = metrics[i].valueAsJsonPropVal.toFloat();
-        if (value > minSoilHumidity) {
-            TRACE("open pod gate: ");
-            TRACE(i+1);
-            TRACE("for s");
-            TRACELN(gateOpenTime);
-            digitalWrite(gatePins[i], HIGH); 
-            delay(gateOpenTime);
-            digitalWrite(gatePins[i], LOW); 
-            TRACELN("... close gate for pod #");
-            TRACELN("... closed gate");           
-        } else {
-            TRACE("watering don't need for pod #"); TRACELN(i+1);
-        }
-    }
 
     #if ENABLE_NETWORK_PUBLISH
     TRACELN("next cycle, time from last publish: " +
@@ -316,12 +332,19 @@ void updateState() {
 
         dumpMemory();
 
-
         //push metrics
         if (needPublish && hasConnected) { //fixme it needs to be moved to the update state/render state section
-            publishActualMetrics();
-        }
+            boolean published = false;
+            
+            published = publishSensorMetrics();
+            #if SOIL_MODE
+            published = wateringAndPublishMetrics() && published;
+            #endif
 
+            if (published) {
+                lastPublishTime = millis();
+            }
+        }
     }
     #endif
 }

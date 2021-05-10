@@ -43,9 +43,9 @@ void SoilSensor::begin() {
     #endif
 
     //workaround, for some reason it work correctly after several measuments
-    for (byte i = 0; i < 3; i++) {
+    for (byte i = 0; i < 5; i++) {
         onLoopCycle();
-        delay(10);
+        delay(1000);
     }
 
     onDataClean();
@@ -59,6 +59,8 @@ void SoilSensor::onLoopCycle() {
     Wire.requestFrom(PCF8591, 5);
 
     byte value0, value1, value2, value3;
+    byte maxValue = 255;
+    byte targetMax = 100;
 
     value0 = Wire.read();
     value0 = Wire.read();
@@ -66,15 +68,15 @@ void SoilSensor::onLoopCycle() {
     value2 = Wire.read();
     value3 = Wire.read();
 
-    this->soilHumidity[0].valueAsJsonPropVal = String(value0);
-    this->soilHumidity[1].valueAsJsonPropVal = String(value1);
-    this->soilHumidity[2].valueAsJsonPropVal = String(value2);
-    this->soilHumidity[3].valueAsJsonPropVal = String(value3);
+    this->soilHumidity[0].valueAsJsonPropVal = String(map(value0, 0, maxValue, targetMax, 0));
+    this->soilHumidity[1].valueAsJsonPropVal = String(map(value1, 0, maxValue, targetMax, 0));
+    this->soilHumidity[2].valueAsJsonPropVal = String(map(value2, 0, maxValue, targetMax, 0));
+    this->soilHumidity[3].valueAsJsonPropVal = String(map(value3, 0, maxValue, targetMax, 0));
 
-    TRACELN(value0);
-    TRACELN(value1);
-    TRACELN(value2);
-    TRACELN(value3);
+    TRACE(value0); TRACE("="); TRACELN(this->soilHumidity[0].valueAsJsonPropVal);
+    TRACE(value1); TRACE("="); TRACELN(this->soilHumidity[1].valueAsJsonPropVal);
+    TRACE(value2); TRACE("="); TRACELN(this->soilHumidity[2].valueAsJsonPropVal);
+    TRACE(value3); TRACE("="); TRACELN(this->soilHumidity[3].valueAsJsonPropVal);
 
     setDAC(value0);
 }
