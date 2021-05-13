@@ -6,7 +6,7 @@
 
 #define EXPECTED_METRIC_COUNT 4
 
-SoilSensor soilSensor(D1, D2, EXPECTED_METRIC_COUNT);
+SoilSensor soilSensor(D1, D2, EXPECTED_METRIC_COUNT, D8);
 
 void setUp(void) {
 // set stuff up here
@@ -72,6 +72,8 @@ void setup() {
     UNITY_BEGIN();    // IMPORTANT LINE!
 
     soilSensor.begin();
+    soilSensor.wakeup();
+    
     pinMode(LED_BUILTIN, OUTPUT);
 
     RUN_TEST(test_led_builtin_pin_number);
@@ -81,6 +83,7 @@ void setup() {
 
 void loop() {
     delay(500);
+
     
     soilSensor.onLoopCycle();
 
@@ -88,5 +91,8 @@ void loop() {
     RUN_TEST(test_metric_values);
     RUN_TEST(test_metric_typeKind);
     RUN_TEST(test_metric_typeNames);
+
+    //soilSensor.sleep();
+
     UNITY_END(); // stop unit testing
 }

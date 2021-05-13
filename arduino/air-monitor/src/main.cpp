@@ -29,7 +29,10 @@ extern "C" {
 #include <dust/zh03b/zh03b_sensor.h>
 #include "time_utils.h"
 
-#define CYCLE_SECONDS 60 * 15
+#define DEEP_SLEEP true
+#define SOIL_SENSOR_POWER_CONTROL_PIN D8
+
+#define CYCLE_SECONDS 60 * 60 * 2
 #define PUBLISH_INTERVAL (1000 * CYCLE_SECONDS + 1)  // once in the x minutes
 #define CYCLE_DELAY (1000 * CYCLE_SECONDS)                  
 #define SESNOR_MIN_CLYCLE_DELAY_TO_SLEEP 3000     // sensors will go sleep only if cycle delay more than this value
@@ -46,11 +49,15 @@ extern "C" {
 #define DUST_GP2Y_ANALOG_IN_PIN D5
 #define DUST_GP2Y_LED_CONTROL_PIN A0
 
+
 // FIXME overlap with the rest sensor pins, it is a reason of SOIL_MODE
 #define SOIL_MODE true
+#ifdef SOIL_MODE
 #define SOIL_POD_COUNT 1
+#define SOIL_ENABLE_WATERING false
 #define I2C_PIN_SDA D1
 #define I2C_pin_SCL D2
+#endif
 
 #define DHTTYPE DHT11  // DHT 11
 
@@ -64,7 +71,7 @@ NTPClient timeClient(ntpUDP, NTP_ADDRESS, NTP_OFFSET, NTP_INTERVAL);
 // MetricResult gateMetrics[SOIL_POD_COUNT];
 
 
-SoilSensor soilSensor(I2C_PIN_SDA, I2C_pin_SCL, SOIL_POD_COUNT);
+SoilSensor soilSensor(I2C_PIN_SDA, I2C_pin_SCL, SOIL_POD_COUNT, SOIL_SENSOR_POWER_CONTROL_PIN);
 AbstractSensor* sensors[] = {&soilSensor};
 int gatePins[] = { D5, D6 };
 int gateWaterAmount[] = { 600, 600 }; // important to define otherwise will be water leack
@@ -169,6 +176,7 @@ void messageReceived(char* topic, byte* payload, unsigned int length) {
 
 void setup() {
     pinMode(LED_BUILTIN, OUTPUT);
+    pinMode(D0, WAKEUP_PULLUP);
     #if SOIL_MODE
     waterController.begin();
     #endif
@@ -313,7 +321,7 @@ void updateState() {
             boolean published = false;
             
             published = publishSensorMetrics();
-            #if SOIL_MODE
+            #if SOIL_ENABLE_WATERING
             published = wateringAndPublishMetrics() && published;
             #endif
 
@@ -388,5 +396,11 @@ void loop() {
     lastLoopStartTime = currentLoopStartTime;
 
     dumpMemory();
-    delay(actualDelay);
+    if (DEEP_SLEEP) {
+        TRACELN("DEEP sleep enabled go to deep sleep");
+        ESP.deepSleep(actualDelay * 1000, RF_DEFAULT);
+    } else {
+        delay(actualDelay);
+    }
+
 }

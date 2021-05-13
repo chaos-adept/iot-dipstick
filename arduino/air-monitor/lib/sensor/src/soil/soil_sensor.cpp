@@ -16,8 +16,10 @@ void setDAC(byte val){
    Wire.endTransmission();                  // завершаем соединение
 }
 
-SoilSensor::SoilSensor(int sdaPin, int sclPin, int sensorCount): sclPin(sclPin), sdaPin(sdaPin), sensorCount(sensorCount) {
+SoilSensor::SoilSensor(int sdaPin, int sclPin, int sensorCount, int powerControlPin):
+ sclPin(sclPin), sdaPin(sdaPin), sensorCount(sensorCount), powerControlPin(powerControlPin) {
 
+    
     for (int i = 0; i < getMetricsCount(); i++) {
         this->soilHumidity[i] = { String("Soil_Humidity_") + String(i), String("Float"), String("0") };
     }
@@ -32,6 +34,9 @@ SoilSensor::~SoilSensor() {
 void SoilSensor::begin() {
     TRACELN("Soil Sensor Begin");
 
+    pinMode(powerControlPin, OUTPUT);
+    digitalWrite(powerControlPin, LOW);
+
     #if defined (ESP8266) || defined(ESP32)
     TRACE("sda ");
     TRACE(sdaPin);
@@ -42,13 +47,34 @@ void SoilSensor::begin() {
     Wire.begin();
     #endif
 
-    //workaround, for some reason it work correctly after several measuments
-    for (byte i = 0; i < 5; i++) {
-        onLoopCycle();
-        delay(1000);
-    }
+    // //workaround, for some reason it work correctly after several measuments
+    // for (byte i = 0; i < 3; i++) {
+    //     onLoopCycle();
+    //     delay(100);
+    // }
 
     onDataClean();
+}
+
+boolean SoilSensor::wakeup() {
+    TRACELN("soild sensor wakeup");
+    digitalWrite(powerControlPin, HIGH);
+    TRACELN("workaround delay... started");
+
+        //workaround, for some reason it work correctly after several measuments
+    // for (byte i = 0; i < 3; i++) {
+    //     onLoopCycle();
+    //     delay(100);
+    // }
+    delay(100);
+    TRACELN("workaround delay... finished");
+    return true;
+}
+
+boolean SoilSensor::sleep() {
+    TRACELN("soild sensor sleep");
+    digitalWrite(powerControlPin, LOW);   
+    return true; 
 }
 
 void SoilSensor::onLoopCycle() {
