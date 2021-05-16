@@ -1,6 +1,6 @@
 #define DEBUG true
 #define LOGGING_ENABLED true
-#define ENABLE_NETWORK_PUBLISH true
+#define ENABLE_NETWORK_PUBLISH false
 #define DEEP_SLEEP false
 // #define LOGGING_MEMORY true
 
@@ -23,14 +23,18 @@ extern "C" {
 // './local_specific_variables.h.sample'
 #include "format/json_formatter.h"
 #include "local_specific_variables.h"
-#include <co2/z19b/z19b_sensor.h>
-#include <dht11/dht11_sensor.h>
-#include <soil/soil_sensor.h>
-#include <water_controller.h>
-#include <dust/zh03b/zh03b_sensor.h>
 #include "time_utils.h"
 
-#define CYCLE_SECONDS 60 * 60
+#if (SOIL_MODE)
+#include <soil/soil_sensor.h>
+#include <water_controller.h>
+#else
+#include <co2/z19b/z19b_sensor.h>
+#include <dht11/dht11_sensor.h>
+#include <dust/zh03b/zh03b_sensor.h>
+#endif
+
+#define CYCLE_SECONDS 60 * 3
 #define PUBLISH_INTERVAL (1000 * CYCLE_SECONDS + 1)  // once in the x minutes
 #define CYCLE_DELAY (1000 * CYCLE_SECONDS)                  
 #define SESNOR_MIN_CLYCLE_DELAY_TO_SLEEP 3000     // sensors will go sleep only if cycle delay more than this value
