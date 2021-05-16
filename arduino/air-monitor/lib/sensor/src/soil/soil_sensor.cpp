@@ -59,14 +59,46 @@ void SoilSensor::begin() {
 boolean SoilSensor::wakeup() {
     TRACELN("soild sensor wakeup");
     digitalWrite(powerControlPin, HIGH);
-    TRACELN("workaround delay... started");
+    
+    if (sensorCount < 1) {
+        return true;
+    }
 
-        //workaround, for some reason it work correctly after several measuments
-    // for (byte i = 0; i < 3; i++) {
-    //     onLoopCycle();
-    //     delay(100);
-    // }
-    delay(100);
+    TRACELN("workaround delay... started");
+    delay(1000);
+
+    // workaround, for some reason it work correctly after several measuments
+
+    int consistentValuesCount = 0;
+    int expectedConsistentValue = 5;
+
+    onLoopCycle();
+    int prevValue = this->soilHumidity[0].valueAsJsonPropVal.toInt();
+
+    for (byte i = 0; i < 50; i++) {
+        delay(1000);
+        onLoopCycle();
+        int currValue = this->soilHumidity[0].valueAsJsonPropVal.toInt(); 
+
+        TRACEVALN("prev", prevValue);
+        TRACEVALN("current", currValue);
+
+        if (prevValue == currValue) {
+            consistentValuesCount++;
+            TRACEVALN("consistent values count", consistentValuesCount);
+            if (consistentValuesCount == expectedConsistentValue) {
+                TRACELN("consistent values reached,");
+                break;
+            }
+        } else {
+            consistentValuesCount = 0;
+
+            TRACELN("values are not consistent, or marker zero, reset counter.");
+        }
+
+        prevValue = currValue;
+    }
+
     TRACELN("workaround delay... finished");
     return true;
 }

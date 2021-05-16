@@ -1,6 +1,7 @@
 #define DEBUG true
 #define LOGGING_ENABLED true
 #define ENABLE_NETWORK_PUBLISH true
+#define DEEP_SLEEP false
 // #define LOGGING_MEMORY true
 
 #include <debug/common.h>
@@ -29,10 +30,7 @@ extern "C" {
 #include <dust/zh03b/zh03b_sensor.h>
 #include "time_utils.h"
 
-#define DEEP_SLEEP true
-#define SOIL_SENSOR_POWER_CONTROL_PIN D8
-
-#define CYCLE_SECONDS 60 * 60 * 2
+#define CYCLE_SECONDS 60 * 60
 #define PUBLISH_INTERVAL (1000 * CYCLE_SECONDS + 1)  // once in the x minutes
 #define CYCLE_DELAY (1000 * CYCLE_SECONDS)                  
 #define SESNOR_MIN_CLYCLE_DELAY_TO_SLEEP 3000     // sensors will go sleep only if cycle delay more than this value
@@ -51,12 +49,13 @@ extern "C" {
 
 
 // FIXME overlap with the rest sensor pins, it is a reason of SOIL_MODE
-#define SOIL_MODE true
-#ifdef SOIL_MODE
+#define SOIL_MODE false
+#if SOIL_MODE
 #define SOIL_POD_COUNT 1
 #define SOIL_ENABLE_WATERING false
 #define I2C_PIN_SDA D1
 #define I2C_pin_SCL D2
+#define SOIL_SENSOR_POWER_CONTROL_PIN D8
 #endif
 
 #define DHTTYPE DHT11  // DHT 11
@@ -65,7 +64,7 @@ extern "C" {
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, NTP_ADDRESS, NTP_OFFSET, NTP_INTERVAL);
 
-#ifdef SOIL_MODE
+#if SOIL_MODE
 
 
 // MetricResult gateMetrics[SOIL_POD_COUNT];
@@ -331,8 +330,10 @@ void updateState() {
         }
     }
     #else
-    
+
+    #if SOIL_ENABLE_WATERING
     performWatering();
+    #endif
 
     #endif
 }
@@ -398,7 +399,17 @@ void loop() {
     dumpMemory();
     if (DEEP_SLEEP) {
         TRACELN("DEEP sleep enabled go to deep sleep");
-        ESP.deepSleep(actualDelay * 1000, RF_DEFAULT);
+        uint64_t deepSleepTime = actualDelay * 1000;
+        uint64_t maxDeepSleep = ESP.deepSleepMax();
+        long deepSleepInHours = (ESP.deepSleepMax()/1000/1000/60/60);
+        TRACEVALN("Max deep sleep in hours", deepSleepInHours);
+        
+        if (deepSleepTime > maxDeepSleep) {
+            deepSleepTime = ESP.deepSleepMax();
+            TRACELN("truced to deep sleep");
+        }
+
+        ESP.deepSleep(deepSleepTime, RF_DEFAULT);
     } else {
         delay(actualDelay);
     }

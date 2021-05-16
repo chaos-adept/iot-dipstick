@@ -40,8 +40,8 @@ void test_metric_values(void) {
     MetricResult* metricResults = soilSensor.getMetrics();
 
     // note, it is unordered because for some reasons indexes are wrong under non-test env
-    TEST_ASSERT_LESS_OR_EQUAL_MESSAGE(5, metricResults[0].valueAsJsonPropVal.toFloat(), (String("val 1: ") + metricResults[0].valueAsJsonPropVal).c_str());
-    TEST_ASSERT_LESS_OR_EQUAL_MESSAGE(5, metricResults[1].valueAsJsonPropVal.toFloat(), (String("val 2: ")  + metricResults[1].valueAsJsonPropVal).c_str());
+    TEST_ASSERT_LESS_OR_EQUAL_MESSAGE(50, metricResults[0].valueAsJsonPropVal.toFloat(), (String("val 1: ") + metricResults[0].valueAsJsonPropVal).c_str());
+    TEST_ASSERT_LESS_OR_EQUAL_MESSAGE(100, metricResults[1].valueAsJsonPropVal.toFloat(), (String("val 2: ")  + metricResults[1].valueAsJsonPropVal).c_str());
     TEST_ASSERT_EQUAL_MESSAGE(100, metricResults[2].valueAsJsonPropVal.toInt(), "val 3");
     TEST_ASSERT_EQUAL_MESSAGE(100, metricResults[3].valueAsJsonPropVal.toInt(), "val 4");
 }
@@ -67,7 +67,7 @@ void test_metric_typeKind(void) {
 void setup() {
     // NOTE!!! Wait for >2 secs
     // if board doesn't support software reset via Serial.DTR/RTS
-    delay(2000);
+    // delay(2000);
 
     UNITY_BEGIN();    // IMPORTANT LINE!
 
