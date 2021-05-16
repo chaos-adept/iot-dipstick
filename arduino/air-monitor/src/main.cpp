@@ -280,6 +280,9 @@ void updateLedStatus() {
     }
 }
 
+
+#if SOIL_MODE
+
 MetricResult* performWatering() {
     waterController.performWateringIfNeeded(soilSensor.getMetrics());
     return waterController.getMetrics();
@@ -289,6 +292,8 @@ boolean wateringAndPublishMetrics() {
     MetricResult* gateMetrics = performWatering();
     return publishMetrics(gateMetrics, SOIL_POD_COUNT);
 }
+
+#endif
 
 void updateState() {
     updateLedStatus(); //fixme it needs to be moved to the update state/render state section
