@@ -1,7 +1,7 @@
 #define DEBUG true
 #define LOGGING_ENABLED true
-#define ENABLE_NETWORK_PUBLISH false
-#define DEEP_SLEEP false
+#define ENABLE_NETWORK_PUBLISH true
+#define DEEP_SLEEP true
 // #define LOGGING_MEMORY true
 
 #include <debug/common.h>
@@ -34,7 +34,7 @@ extern "C" {
 #include <dust/zh03b/zh03b_sensor.h>
 #endif
 
-#define CYCLE_SECONDS 60 * 3
+#define CYCLE_SECONDS 60 * 30
 #define PUBLISH_INTERVAL (1000 * CYCLE_SECONDS + 1)  // once in the x minutes
 #define CYCLE_DELAY (1000 * CYCLE_SECONDS)                  
 #define SESNOR_MIN_CLYCLE_DELAY_TO_SLEEP 3000     // sensors will go sleep only if cycle delay more than this value
@@ -53,7 +53,7 @@ extern "C" {
 
 
 // FIXME overlap with the rest sensor pins, it is a reason of SOIL_MODE
-#define SOIL_MODE false
+// #define SOIL_MODE false
 #if SOIL_MODE
 #define SOIL_POD_COUNT 1
 #define SOIL_ENABLE_WATERING false

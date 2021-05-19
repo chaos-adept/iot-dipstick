@@ -1,4 +1,9 @@
+#define DEBUG true
+#define LOGGING_ENABLED true
+
+
 #include "dht11_sensor.h"
+#include <debug/common.h>
 
 #define BAUDRATE 9600                                      // Native to the sensor (do not change)
 #define DEBUG_SERIAL Serial
@@ -20,6 +25,10 @@ void DHT11Sensor::onLoopCycle() {
     temperature = dht.readTemperature();
     humidity = dht.readHumidity();
 
+    
+    TRACEVALN("DTH11 termperature", temperature);
+    TRACEVALN("DTH11 humidity", humidity);
+
 
     // Sensor readings may also be up to 2 seconds 'old' (its a very slow
     // sensor)
@@ -27,7 +36,7 @@ void DHT11Sensor::onLoopCycle() {
     
     // Check if any reads failed and exit early (to try again).
     if (isnan(temperature) || isnan(humidity)) {
-        Serial.println("Failed to read from DHT sensor!");
+        TRACE("Failed to read from DHT sensor!");
         dht11Read = false;
         alive = false;
     } else {
