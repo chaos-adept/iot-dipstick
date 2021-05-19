@@ -10,7 +10,7 @@ variable "alice_func_execution_timeout" {
 
 variable air_device_count {
   description = "Count of devices, which be present for air monitoring"
-  default     = "2"
+  default     = "3"
 }
 
 variable verbose_logs {

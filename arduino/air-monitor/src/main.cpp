@@ -1,6 +1,6 @@
 #define DEBUG true
 #define LOGGING_ENABLED true
-#define ENABLE_NETWORK_PUBLISH true
+#define ENABLE_NETWORK_PUBLISH false
 #define DEEP_SLEEP true
 // #define LOGGING_MEMORY true
 
@@ -75,6 +75,8 @@ typedef MetricCollection (*CollectMetricHandler)();
 
 void updateLedStatus();
 Handler updateStateHandlers[] = { updateLedStatus };
+
+MetricResult sensprMetricResultsBuffer[50]; //buffer for sensor metrics, todo move to a class
 MetricCollection getSensorMetrics();
 
 #if SOIL_MODE
@@ -282,7 +284,7 @@ MetricCollection getSensorMetrics() {
         
         // results might be more than sensors
         
-        MetricResult results[totalExpectedMetricCount];  
+        MetricResult* results = sensprMetricResultsBuffer;  
         int resultMetricsCount = 0;
         for (int sensorIndx = 0; sensorIndx < aliveSensorCount; sensorIndx++) {
             AbstractSensor* sensor = aliveSensors[sensorIndx];
@@ -312,7 +314,7 @@ void updateLedStatus() {
 MetricCollection performWatering() {
     #if SOIL_ENABLE_WATERING
     waterController.performWateringIfNeeded(soilSensor.getMetrics());
-    return { waterController.getPotsCount(), waterController.getMetrics() }
+    return { waterController.getMetrics(), waterController.getPotsCount() };
     #else
     TRACELN("watering is disabled");
     return { NULL, 0 };
