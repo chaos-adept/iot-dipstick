@@ -68,25 +68,40 @@ extern "C" {
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, NTP_ADDRESS, NTP_OFFSET, NTP_INTERVAL);
 
+
+typedef void (*Handler)();
+typedef MetricCollection (*CollectMetricHandler)();
+
+
+void updateLedStatus();
+Handler updateStateHandlers[] = { updateLedStatus };
+MetricCollection getSensorMetrics();
+
 #if SOIL_MODE
-
-
-// MetricResult gateMetrics[SOIL_POD_COUNT];
-
-
+MetricCollection performWatering();
 SoilSensor soilSensor(I2C_PIN_SDA, I2C_pin_SCL, SOIL_POD_COUNT, SOIL_SENSOR_POWER_CONTROL_PIN);
 AbstractSensor* sensors[] = {&soilSensor};
 int gatePins[] = { D5, D6 };
 int gateWaterAmount[] = { 600, 600 }; // important to define otherwise will be water leack
-
 WaterController waterController(SOIL_POD_COUNT, gatePins, gateWaterAmount);
+void beginHandler() {
+    waterController.begin();
+}
+
+Handler beginHandlers[] = {beginHandler};
+CollectMetricHandler collecMetricHandlers[] = {getSensorMetrics, performWatering};
 
 #else
 Z19BSensor co2sensor(CO2_RX_PIN, CO2_TX_PIN);
 DHT11Sensor dth11Sensor(DHT_PIN, DHTTYPE);
 ZH03BSensor zh03Sensor(DUST_ZH038_RX, DUST_ZH038_TX);
 AbstractSensor* sensors[] = {&co2sensor, &dth11Sensor, &zh03Sensor};
+
+BeginHandler beginHandlers[] = {};
+CollectMetricHandler collecMetricHandlers[] = {getSensorMetrics};
+
 #endif
+
 
 const int sensorCount = sizeof(sensors) / sizeof(sensors[0]);
 
@@ -180,9 +195,11 @@ void messageReceived(char* topic, byte* payload, unsigned int length) {
 void setup() {
     pinMode(LED_BUILTIN, OUTPUT);
     pinMode(D0, WAKEUP_PULLUP);
-    #if SOIL_MODE
-    waterController.begin();
-    #endif
+
+    for (int i = 0; i < sizeof(beginHandlers)/sizeof(Handler); i++) {
+        beginHandlers[i]();
+    }
+
     digitalWrite(LED_BUILTIN, LOW);
 
     delay(1000);
@@ -214,7 +231,13 @@ void setup() {
     delay(3000);
 }
 
-boolean publishMetrics(MetricResult* metrics, int metricsCount) {
+boolean publishMetrics(MetricCollection metricCollection) {
+
+    if (metricCollection.count < 1) {
+        TRACELN("no metrics to send data");
+        return false;
+    }
+
     if (lightIsOn) {
         digitalWrite(LED_BUILTIN, HIGH);
         delay(10);
@@ -222,7 +245,7 @@ boolean publishMetrics(MetricResult* metrics, int metricsCount) {
     }
 
     char* msg = threadUnsafeFormatMetricsAsJson(timeClient.getEpochTime(),
-                                                metrics, metricsCount);
+                                                metricCollection.results, metricCollection.count);
     TRACELN(msg);
 
     #if ENABLE_NETWORK_PUBLISH
@@ -239,7 +262,7 @@ boolean publishMetrics(MetricResult* metrics, int metricsCount) {
     #endif
 }
 
-boolean publishSensorMetrics() {
+MetricCollection getSensorMetrics() {
    // get alive sensors
     int aliveSensorCount = 0;
     int totalExpectedMetricCount = 0;
@@ -254,8 +277,7 @@ boolean publishSensorMetrics() {
     }
 
     if (aliveSensorCount == 0) {
-        TRACELN("no alive sensors to send data");
-        return true;
+        return { NULL, 0 };
     } else {
         
         // results might be more than sensors
@@ -271,7 +293,7 @@ boolean publishSensorMetrics() {
             }
         }
 
-        return publishMetrics(results, totalExpectedMetricCount);
+        return { results, totalExpectedMetricCount };
     }    
 }
 
@@ -287,23 +309,32 @@ void updateLedStatus() {
 
 #if SOIL_MODE
 
-MetricResult* performWatering() {
+MetricCollection performWatering() {
+    #if SOIL_ENABLE_WATERING
     waterController.performWateringIfNeeded(soilSensor.getMetrics());
-    return waterController.getMetrics();
-}
-
-boolean wateringAndPublishMetrics() {
-    MetricResult* gateMetrics = performWatering();
-    return publishMetrics(gateMetrics, SOIL_POD_COUNT);
+    return { waterController.getPotsCount(), waterController.getMetrics() }
+    #else
+    TRACELN("watering is disabled");
+    return { NULL, 0 };
+    #endif
 }
 
 #endif
 
-void updateState() {
+void updateControllerState() {
     updateLedStatus(); //fixme it needs to be moved to the update state/render state section
 
     unsigned long timeFromTheLastPublish = millis() - lastPublishTime;
     needPublish = (PUBLISH_INTERVAL <= (timeFromTheLastPublish)) || (lastPublishTime == NONE);
+
+
+    int metricCollectionCount = sizeof(collecMetricHandlers) / sizeof(CollectMetricHandler);
+
+    MetricCollection metricCollections[metricCollectionCount];
+
+    for (int i = 0; i < metricCollectionCount; i++) {
+        metricCollections[i] = collecMetricHandlers[i]();
+    }
 
 
     #if ENABLE_NETWORK_PUBLISH
@@ -327,23 +358,20 @@ void updateState() {
         //push metrics
         if (needPublish && hasConnected) { //fixme it needs to be moved to the update state/render state section
             boolean published = false;
-            
-            published = publishSensorMetrics();
-            #if SOIL_ENABLE_WATERING
-            published = wateringAndPublishMetrics() && published;
-            #endif
+
+            for (int i = 0; i < metricCollectionCount; i++) {
+                published = publishMetrics(metricCollections[i]) && published;
+            }
 
             if (published) {
                 lastPublishTime = millis();
+            } else {
+                TRACELN("There are issues during the publishing metrcs, last time publish is not updated");
             }
         }
     }
     #else
-
-    #if SOIL_ENABLE_WATERING
-    performWatering();
-    #endif
-
+    TRACELN("publishing metrics are disabled");
     #endif
 }
 
@@ -367,7 +395,7 @@ void loop() {
 
     dumpMemory();
 
-    updateState();
+    updateControllerState();
 
     dumpMemory();
     

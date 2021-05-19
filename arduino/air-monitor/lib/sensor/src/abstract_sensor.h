@@ -9,6 +9,11 @@ struct MetricResult {
     String valueAsJsonPropVal;
 };
 
+struct MetricCollection {
+    MetricResult* results;
+    int count;
+};
+
 class AbstractSensor {
     public:
         virtual void begin() = 0;
