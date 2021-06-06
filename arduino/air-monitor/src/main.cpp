@@ -1,17 +1,23 @@
 #define DEBUG true
 #define LOGGING_ENABLED true
-#define ENABLE_NETWORK_PUBLISH false
+#define ENABLE_NETWORK_PUBLISH true
 #define DEEP_SLEEP true
 // #define LOGGING_MEMORY true
 
 #include <debug/common.h>
 
+
+//uint32_t free = system_get_free_heap_size();
+#if !(ESP32)
 extern "C" {
     #include "user_interface.h"
 }
-//uint32_t free = system_get_free_heap_size();
 
 #include <ESP8266WiFi.h>
+#else 
+#include <Arduino.h>
+#endif
+
 #include <NTPClient.h>
 #include <PubSubClient.h>  // MQTT Client
 #include <WiFiUDP.h>
@@ -25,16 +31,21 @@ extern "C" {
 #include "local_specific_variables.h"
 #include "time_utils.h"
 
+#include <power_supply/power_supply.h>
+
 #if (SOIL_MODE)
 #include <soil/soil_sensor.h>
 #include <water_controller.h>
+
+#elif SOLAR_MODE
+
 #else
 #include <co2/z19b/z19b_sensor.h>
 #include <dht11/dht11_sensor.h>
 #include <dust/zh03b/zh03b_sensor.h>
 #endif
 
-#define CYCLE_SECONDS 60 * 30
+#define CYCLE_SECONDS 60 * 15
 #define PUBLISH_INTERVAL (1000 * CYCLE_SECONDS + 1)  // once in the x minutes
 #define CYCLE_DELAY (1000 * CYCLE_SECONDS)                  
 #define SESNOR_MIN_CLYCLE_DELAY_TO_SLEEP 3000     // sensors will go sleep only if cycle delay more than this value
@@ -93,13 +104,22 @@ void beginHandler() {
 Handler beginHandlers[] = {beginHandler};
 CollectMetricHandler collecMetricHandlers[] = {getSensorMetrics, performWatering};
 
+#elif SOLAR_MODE
+
+Handler beginHandlers[] = {};
+CollectMetricHandler collecMetricHandlers[] = { getSensorMetrics };
+PowerVoltageSensor powerVoltageSensor(A0);
+AbstractSensor* sensors[] = { &powerVoltageSensor };
+
 #else
+
 Z19BSensor co2sensor(CO2_RX_PIN, CO2_TX_PIN);
 DHT11Sensor dth11Sensor(DHT_PIN, DHTTYPE);
 ZH03BSensor zh03Sensor(DUST_ZH038_RX, DUST_ZH038_TX);
-AbstractSensor* sensors[] = {&co2sensor, &dth11Sensor, &zh03Sensor};
+PowerVoltageSensor powerVoltageSensor(A0);
+AbstractSensor* sensors[] = {&co2sensor, &dth11Sensor, &zh03Sensor, &powerVoltageSensor};
 
-BeginHandler beginHandlers[] = {};
+Handler beginHandlers[] = {};
 CollectMetricHandler collecMetricHandlers[] = {getSensorMetrics};
 
 #endif
