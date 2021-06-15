@@ -5,8 +5,8 @@
 #include "power_supply.h"
 #include <debug/common.h>
 
-PowerVoltageSensor::PowerVoltageSensor(int analogPin): analogPin(analogPin) {
-    lastVoltageMeasure = { String("PowerVoltage"), String("Float"), String("0") };
+PowerVoltageSensor::PowerVoltageSensor(String name, int analogPin): analogPin(analogPin) {
+    lastVoltageMeasure = { name, String("Float"), String("0") };
 
 }
 

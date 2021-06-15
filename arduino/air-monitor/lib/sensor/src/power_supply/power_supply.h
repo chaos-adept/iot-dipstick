@@ -4,7 +4,7 @@
 class PowerVoltageSensor : public AbstractSensor
 {
     public:
-        PowerVoltageSensor(int analogPin);
+        PowerVoltageSensor(String name, int analogPin);
         ~PowerVoltageSensor();
 
         void begin();
