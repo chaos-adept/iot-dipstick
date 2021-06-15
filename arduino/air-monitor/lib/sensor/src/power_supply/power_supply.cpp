@@ -26,7 +26,7 @@ void PowerVoltageSensor::onDataClean() {
 
 void PowerVoltageSensor::onLoopCycle() {
     int voltage = analogRead(analogPin);
-    String propVal = String(voltage); //String(map(voltage, 0, 1024, 0, 1000));
+    String propVal = String(map(voltage, 0, 4095, 0, 100));
     TRACEVALN("voltage", voltage);
     TRACEVALN("prop val", propVal);
     lastVoltageMeasure.valueAsJsonPropVal = propVal;

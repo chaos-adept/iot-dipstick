@@ -1,12 +1,10 @@
 #include <Arduino.h>
 #include "../abstract_sensor.h"
 
-#define DEFAULT_MAX_SOIL_SENSOR_COUNT 4
-#define DEFAULT_POWER_CTRL_PIN D5
 
 class SoilSensor : public AbstractSensor {
    public:
-    SoilSensor(int sdaPin, int sclPin, int sensorCount = DEFAULT_MAX_SOIL_SENSOR_COUNT, int powerControlPin = DEFAULT_POWER_CTRL_PIN);
+    SoilSensor(int sdaPin, int sclPin, int sensorCount, int powerControlPin);
     ~SoilSensor();
 
     void begin();

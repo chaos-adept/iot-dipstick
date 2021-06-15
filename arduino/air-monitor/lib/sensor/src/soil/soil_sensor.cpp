@@ -3,7 +3,6 @@
 
 #include <Arduino.h>
 #include "soil_sensor.h"
-#include <ESP8266WiFi.h>
 #include <Wire.h>
 #include <debug/common.h>
 #define PCF8591 0x48 

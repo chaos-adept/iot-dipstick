@@ -1,6 +1,6 @@
 #define DEBUG true
 #define LOGGING_ENABLED true
-#define ENABLE_NETWORK_PUBLISH true
+#define ENABLE_NETWORK_PUBLISH false
 #define DEEP_SLEEP true
 // #define LOGGING_MEMORY true
 
@@ -8,19 +8,26 @@
 
 
 //uint32_t free = system_get_free_heap_size();
+#define uS_TO_MS_FACTOR 1000ULL  /* Conversion factor for micro seconds to mill seconds */
 #if !(ESP32)
 extern "C" {
     #include "user_interface.h"
 }
-
 #include <ESP8266WiFi.h>
-#else 
-#include <Arduino.h>
-#endif
-
 #include <NTPClient.h>
 #include <PubSubClient.h>  // MQTT Client
 #include <WiFiUDP.h>
+#else 
+#include <Arduino.h>
+#include <WiFi.h>
+#include <WiFiClientSecure.h>
+#include <PubSubClient.h>
+// #include <MQTT.h>
+#include <ESPmDNS.h>
+#include <NTPClient.h>
+#endif
+
+
 
 // yandex cloud registry settings
 #include "yandex_cloud_mqtt_settings.h"
@@ -36,16 +43,15 @@ extern "C" {
 #if (SOIL_MODE)
 #include <soil/soil_sensor.h>
 #include <water_controller.h>
-
-#elif SOLAR_MODE
-
+#elif (SOLAR_MODE)
 #else
 #include <co2/z19b/z19b_sensor.h>
 #include <dht11/dht11_sensor.h>
 #include <dust/zh03b/zh03b_sensor.h>
 #endif
 
-#define CYCLE_SECONDS 60 * 15
+// #define CYCLE_SECONDS 60 * 15
+#define CYCLE_SECONDS 5
 #define PUBLISH_INTERVAL (1000 * CYCLE_SECONDS + 1)  // once in the x minutes
 #define CYCLE_DELAY (1000 * CYCLE_SECONDS)                  
 #define SESNOR_MIN_CLYCLE_DELAY_TO_SLEEP 3000     // sensors will go sleep only if cycle delay more than this value
@@ -148,7 +154,7 @@ unsigned long lastPublishTime = NONE;
 
 WiFiClientSecure net;
 PubSubClient client(net);
-BearSSL::X509List x509(registry_root_ca);
+//BearSSL::X509List x509(registry_root_ca);
 
 void dumpMemory() {
     #ifdef LOGGING_MEMORY
@@ -173,6 +179,7 @@ bool connect() {
     }
     TRACELN(" Connected");
     net.setInsecure();
+    //net.setCACert(registry_root_ca);
     TRACE("Connecting to Yandex IoT Core as");
     TRACE(yandexIoTCoreDeviceId);
     TRACE(" ...");
@@ -216,7 +223,9 @@ void messageReceived(char* topic, byte* payload, unsigned int length) {
 
 void setup() {
     pinMode(LED_BUILTIN, OUTPUT);
+    #if !ESP32
     pinMode(D0, WAKEUP_PULLUP);
+    #endif
 
     for (int i = 0; i < sizeof(beginHandlers)/sizeof(Handler); i++) {
         beginHandlers[i]();
@@ -379,7 +388,7 @@ void updateControllerState() {
 
         //push metrics
         if (needPublish && hasConnected) { //fixme it needs to be moved to the update state/render state section
-            boolean published = false;
+            boolean published = true;
 
             for (int i = 0; i < metricCollectionCount; i++) {
                 published = publishMetrics(metricCollections[i]) && published;
@@ -456,21 +465,31 @@ void loop() {
     lastLoopStartTime = currentLoopStartTime;
 
     dumpMemory();
-    if (DEEP_SLEEP) {
-        TRACELN("DEEP sleep enabled go to deep sleep");
-        uint64_t deepSleepTime = actualDelay * 1000;
-        uint64_t maxDeepSleep = ESP.deepSleepMax();
-        long deepSleepInHours = (ESP.deepSleepMax()/1000/1000/60/60);
-        TRACEVALN("Max deep sleep in hours", deepSleepInHours);
-        
-        if (deepSleepTime > maxDeepSleep) {
-            deepSleepTime = ESP.deepSleepMax();
-            TRACELN("truced to deep sleep");
-        }
+    
+        if (DEEP_SLEEP) {
+            TRACELN("DEEP sleep enabled go to deep sleep");
+            uint64_t deepSleepTime = actualDelay * uS_TO_MS_FACTOR;
+#if !ESP32
+            uint64_t maxDeepSleep = ESP.deepSleepMax();
+            long deepSleepInHours = (ESP.deepSleepMax() / 1000 / 1000 / 60 / 60);
+            TRACEVALN("Max deep sleep in hours", deepSleepInHours);
 
-        ESP.deepSleep(deepSleepTime, RF_DEFAULT);
-    } else {
-        delay(actualDelay);
-    }
+            if (deepSleepTime > maxDeepSleep)
+            {
+                deepSleepTime = ESP.deepSleepMax();
+                TRACELN("truced to deep sleep");
+            }
+
+            ESP.deepSleep(deepSleepTime, RF_DEFAULT);
+#else
+            int deepSleepResult = esp_sleep_enable_timer_wakeup(deepSleepTime);
+            if (deepSleepResult != ESP_OK) {
+                TRACEVALN("error during go sleep", deepSleepResult);
+            }
+            esp_deep_sleep_start();
+#endif
+        } else {
+            delay(actualDelay);
+        }
 
 }
