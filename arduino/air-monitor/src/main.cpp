@@ -114,7 +114,8 @@ CollectMetricHandler collecMetricHandlers[] = {getSensorMetrics, performWatering
 
 Handler beginHandlers[] = {};
 CollectMetricHandler collecMetricHandlers[] = { getSensorMetrics };
-PowerVoltageSensor powerVoltageSensor(String("Power Supply"), A0);
+PowerVoltageSensor powerVoltageSensor(String("Power Supply Voltage"), ADC1_CHANNEL_0);
+PowerVoltageSensor solarVoltageSensor(String("Solar Panel Voltage"), ADC1_CHANNEL_3);
 AbstractSensor* sensors[] = { &powerVoltageSensor };
 
 #else
