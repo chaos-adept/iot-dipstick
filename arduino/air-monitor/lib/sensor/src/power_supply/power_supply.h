@@ -5,7 +5,7 @@
 class PowerVoltageSensor : public AbstractSensor
 {
     public:
-        PowerVoltageSensor(String name, adc1_channel_t analogPin);
+        PowerVoltageSensor(String name, adc1_channel_t analogPin, float ratio);
         ~PowerVoltageSensor();
 
         void begin();
@@ -17,5 +17,6 @@ class PowerVoltageSensor : public AbstractSensor
 
     private:
         adc1_channel_t analogPin;
+        float ratio;
         MetricResult lastVoltageMeasure;
 };

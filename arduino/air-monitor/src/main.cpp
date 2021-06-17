@@ -1,6 +1,6 @@
 #define DEBUG true
 #define LOGGING_ENABLED true
-#define ENABLE_NETWORK_PUBLISH false
+#define ENABLE_NETWORK_PUBLISH true
 #define DEEP_SLEEP true
 // #define LOGGING_MEMORY true
 
@@ -50,8 +50,8 @@ extern "C" {
 #include <dust/zh03b/zh03b_sensor.h>
 #endif
 
-// #define CYCLE_SECONDS 60 * 15
-#define CYCLE_SECONDS 5
+#define CYCLE_SECONDS 60 * 15
+// #define CYCLE_SECONDS 5
 #define PUBLISH_INTERVAL (1000 * CYCLE_SECONDS + 1)  // once in the x minutes
 #define CYCLE_DELAY (1000 * CYCLE_SECONDS)                  
 #define SESNOR_MIN_CLYCLE_DELAY_TO_SLEEP 3000     // sensors will go sleep only if cycle delay more than this value
@@ -114,9 +114,9 @@ CollectMetricHandler collecMetricHandlers[] = {getSensorMetrics, performWatering
 
 Handler beginHandlers[] = {};
 CollectMetricHandler collecMetricHandlers[] = { getSensorMetrics };
-PowerVoltageSensor powerVoltageSensor(String("Power Supply Voltage"), ADC1_CHANNEL_0);
-PowerVoltageSensor solarVoltageSensor(String("Solar Panel Voltage"), ADC1_CHANNEL_3);
-AbstractSensor* sensors[] = { &powerVoltageSensor };
+PowerVoltageSensor powerVoltageSensor(String("Power Supply Voltage"), ADC1_CHANNEL_0, 4.7f);
+PowerVoltageSensor solarVoltageSensor(String("Solar Panel Voltage"), ADC1_CHANNEL_3, 4.7f);
+AbstractSensor* sensors[] = { &powerVoltageSensor, &solarVoltageSensor };
 
 #else
 

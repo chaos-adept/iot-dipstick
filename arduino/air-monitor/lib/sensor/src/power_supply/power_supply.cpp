@@ -6,9 +6,8 @@
 #include <debug/common.h>
 #include <driver/adc.h>
 
-PowerVoltageSensor::PowerVoltageSensor(String name, adc1_channel_t analogPin): analogPin(analogPin) {
+PowerVoltageSensor::PowerVoltageSensor(String name, adc1_channel_t analogPin, float ratio): analogPin(analogPin), ratio(ratio) {
     lastVoltageMeasure = { name, String("Float"), String("0") };
-
 }
 
 
@@ -28,9 +27,9 @@ void PowerVoltageSensor::onDataClean() {
 
 void PowerVoltageSensor::onLoopCycle() {
     int voltage  = adc1_get_raw(analogPin);
-    String propVal = String(map(voltage, 0, 4095, 0, 3300));
+    String propVal = String((uint)(map(voltage, 0, 4094, 0, 3900) * ratio));
 
-    TRACEVALN("voltage", voltage);
+    TRACEVALN(lastVoltageMeasure.kind + " voltage", voltage);
     TRACEVALN("prop val", propVal);
     lastVoltageMeasure.valueAsJsonPropVal = propVal;
 }
